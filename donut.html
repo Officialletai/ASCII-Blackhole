@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Projects</title>
+        <link rel="stylesheet" type="text/css" href="assets/css/stylev2.css">
+        <link rel="stylesheet" href="codemirror/theme/monokai.css">
+
+        <script src="codemirror/lib/codemirror.js"></script>
+        <script src="codemirror/mode/python/python.js"></script>
+
+        <link rel="stylesheet" href="codemirror/lib/codemirror.css">
+        <link rel="stylesheet" href="codemirror/addon/hint/show-hint.css">
+
+        <script src="codemirror/addon/hint/show-hint.js"></script>
+        <script src="codemirror/addon/hint/python-hint.js"></script>
+
+        <script src="codemirror/addon/edit/closebrackets.js"></script>
+
+        <link rel="stylesheet" type="text/css" href="assets/css/donutfigures.css">
+    </head>
+    <body class="scrollable">
+    <div class="animated fadeIn">
+        <header>
+            <a href="index.html" class="logo">Tai Le</a>
+            <div class="menuToggle" onclick="toggleMenu();"></div>
+            <ul class="navigation">
+                <li><a href="projects.html" class="active">Projects</a></li>
+                <li><a href="thoughts.html">Thoughts</a></li>
+                <li><a href="contactme.html">Contact me</a></li>
+                <li><a href="#" class="active">Light mode</a></li>
+            </ul>
+        </header>
+        <div class="app">
+
+            <aside class="sidebar" id="sidebar">
+                <nav class="projectmenu">
+                    <a href="projects.html" class="projectmenu-item">Landing Page</a>
+                    <a href="sudokugenerator.html" class="projectmenu-item">Sudoku generator</a>
+                    <a href="donut.html" class="projectmenu-item  is-active">Spinning donut</a>
+                    <a href="dissertation.html" class="projectmenu-item">Dissertation</a>
+                    <a href="#" class="projectmenu-item">COMING SOON</a>
+                </nav>
+            </aside>
+
+            <main class="content">
+                <h1>Spinning Donut</h1>
+                <br>
+                <h2>Preface</h2>
+                <br>
+                This work is inspired by Andy Sloane. The writing contained in this section is entirely focused on the mathematical mechanism behind the rotating donut - I include no explanation of how the animation is outputted via python or how the pygame module works. The output below is a low resolution video but the code is editable and has multiple plugins for ease of use. The material I used for this work is referenced at the bottom of the page. Enjoy.
+                <br>
+                <br>
+                <div>
+                    <video loop muted autoplay onclick="this.paused ? this.play() : this.pause();" style="cursor: pointer;" id="myVideo" width="1419px" height="auto">
+                        <source src="assets/pictures/trimmedv2.mp4" type="video/mp4">
+                        Your browser does not support HTML5 video.
+                    </video>
+                </div>
+                <br><br>
+                <textarea id="codeeditor">
+import pygame
+from math import cos, sin
+
+white = (255,255,255)
+black = (0,0,0)
+
+# window screen size
+res = width, height = 1600, 1000
+
+x_origin, y_origin = 0, 0
+x_spacing = 10
+y_spacing = 10
+
+x_pixel = 0
+y_pixel = 0
+
+# splitting screen into pixels/grid/rows and columns
+screen_width = width // x_spacing
+screen_height = height // y_spacing
+screen_size = screen_height * screen_width
+
+X = 0
+Z = 0
+
+theta_spacing = 10
+phi_spacing = 3
+
+# luminance scale, from darkest to light
+chars = ".,-~:;=!*#$@"
+
+# small radius, big radius, constant, and scale
+r = 10
+R = 20
+C = 200
+a = screen_height * C * 3 / (8 * (r + R))  
+
+pygame.init()
+
+screen = pygame.display.set_mode(res)
+font = pygame.font.SysFont('Arial', 10, bold=True)
+
+def text_display(char, x, y):
+    text = font.render(str(char), True, white)
+    text_rect = text.get_rect(center=(x,y))
+    screen.blit(text, text_rect)
+
+k = 0
+
+running = True
+while running:
+
+    screen.fill(black)
+
+    # create two array of length = screen_size
+    zbuffer = [0] * screen_size
+    output = [' '] * screen_size
+
+    # 0 to 2pi, increasing by theta_spacing and phi_spacing
+    for theta in range(0, 628, theta_spacing):
+        for phi in range(0, 628, phi_spacing):
+            
+            # calculating all necessary components
+            cosX = cos(X)
+            sinX = sin(X)
+
+            cosZ = cos(Z)
+            sinZ = sin(Z)
+
+            costheta = cos(theta)
+            sintheta = sin(theta)
+            cosphi = cos(phi)
+            sinphi = sin(phi)
+
+            # calculating x and y coordinates for a circle
+            x_circle = R + r * costheta
+            y_circle = r * sintheta
+
+            # coordinates after all revolutions
+            x = x_circle * (cosZ * cosphi + sinX * sinZ * sinphi) - y_circle * cosX * sinZ
+            y = x_circle * (sinZ * cosphi - sinX * cosZ * sinphi) + y_circle * cosX * cosZ
+            z = C + x_circle * cosX * sinphi + y_circle * sinX
+
+            '''
+            We now need to project this onto a 2D screen from its 3D form.
+            '''
+            # store 1/z for computational effiency 
+            ooz = 1 / z
+
+            # x, y projection
+            x_p = int(screen_width / 2 + a * ooz * x)
+            y_p = int(screen_height / 2 - a * ooz * y)
+
+            # position for array because it has length = screen_size
+            position = x_p + screen_width * y_p 
+
+            # calculating luminance with surface normal
+            L = cosphi * costheta * sinZ - cosX * costheta * sinphi - sinX * sintheta + cosZ * (
+                cosX * sintheta - costheta * sinX * sinphi)
+
+            # comparing stored value vs new calculated ones
+            if ooz > zbuffer[position]:
+                # if coordinate is closer than what we stored then we set the new coordinate as our updated value
+                zbuffer[position] = ooz
+                # manipulating dot product range so we can have range 0-11 corresponding to ASCII mapping
+                luminance_scale = int(L * 8)
+                output[position] = chars[luminance_scale if luminance_scale > 0 else 0]
+
+    # move through all pixels and print output
+    for i in range(screen_height):
+        y_pixel += y_spacing
+        for j in range(screen_width):
+            x_pixel += x_spacing
+            text_display(output[k], x_pixel, y_pixel)
+            k += 1
+        x_pixel = 0
+    y_pixel = 0
+    k = 0
+
+    # rotation speed along x and z axis
+    X += 0.10
+    Z += 0.030
+
+    pygame.display.update()
+
+    # how to exit programme
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                running = False
+                </textarea>
+                <script>
+                    var myCodeMirror = CodeMirror.fromTextArea
+                    (document.getElementById("codeeditor"), {
+                        mode: "python",
+                        theme: "monokai",
+                        lineNumbers: true,
+                        autoCloseBrackets: true
+
+                    });
+                    
+                    myCodeMirror.setSize("100%","auto")
+
+                    myCodeMirror.on("keyup", function (editor, event){
+                        if (!editor.state.completionActive &&
+                        event.code != "Enter") {
+                            editor.showHint({completeSingle: false})
+                        }
+                    })
+                </script>
+
+                <br>
+                <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+                <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+                <h2>Construction of a torus</h2>
+                <img src="draftprojects/donut/figure1.png" class="figure" id="figure1"  height="300px" width="300px">
+                <figcaption>Figure 1: Intersection of torus taken from <a href="https://commons.wikimedia.org/wiki/File:Torus_volume_using_Pappus%27_Theorem.svg" target="_blank" class="normallink">here</a></figcaption>
+                <p>To construct our donut, which is mathematically referred to as a torus, we can revolve a small circle with radius \(r\) along the parameter made by a larger circle with radius \(R\) as shown in Figure 1. In doing so, we would have rendered our torus which we can then revolve along two more axis to get our desired animation.</p>
+                <br>
+                    
+                <img src="draftprojects/donut/figure2.png" class="figure" id="figure2" height="300px" width="300px">
+                <figcaption>Figure 2: A circle constructed by sweeping through all angles of the coordinates \((cosθ, sinθ, 0)\). The figure is a sketch by the author. </figcaption>
+                
+                <p>Suppose we have a circle of radius \(r\) which has its centre about the origin. We can find any and every given point on the perimeter by noting all coordinates \((cosθ, sinθ, 0)\) for angles \(θ\) ranging from \(0\) to \(2π\). In other words, if we sweep through all angles and plot the resulting coordinates, we will get a circle about the origin with a radius \(r=1\), as in Figure 2. To change the radius from 1 to some arbitrary radius \(r\), we can simply multiply the coordinates by \(r\) to give us: \((rcosθ,rsinθ,0)\). Then, if we want to position this circle such that its centre is along the line of a larger radius \(R\), we can simply add \(R\) to the \(x\) axis which would return: \((R+rcosθ,rsinθ,0)\). The result is shown in Figure 3 below.</p>
+                <br>
+
+                <img src="draftprojects/donut/figure3.png" class="figure" id="figure3" height="360px" width="560px">
+                <figcaption>Figure 3: A circle constructed by sweeping through all angles of the coordinates \((R+rcosθ,rsinθ,0)\). The figure is a sketch by the author. </figcaption>
+                
+                <p>We can now rotate this structure around the y axis for an angle \(φ\) which ranges from \( 0 \) to \(2π\) to give us a donut as below in Figure 4:</p>
+                <br>
+
+                <img src="draftprojects/donut/figure4.png" class="figure" id="figure4" height="300px" width="300px">
+                <figcaption>Figure 4: A 3D torus constructed by sweeping through all angles of the coordinates \((R+rcosθ,rsinθ,0)\) about the y axis. </figcaption>
+                
+                <p>To do this rotation, we take the coordinates for our circle as before and multiply it by a rotational matrix. The derivation of rotational matrices are left out but an explanation is linked <a href="https://austinmorlan.com/posts/rotation_matrices/" class="normallink">here</a>. If we take the corresponding rotational matrix for rotating an object about the y axis:
+                $$ R_y (φ ) = \begin{pmatrix} cosφ & 0 & sinφ \\ 0 & 1 & 0 \\ -sinφ & 0 & cosφ \end{pmatrix} $$
+                And multiply it by the coordinate: \((R + rcosθ, rsinθ, 0)\), we would have rendered the donut as in Figure 4. We use \(φ\) here because our larger circle with radius \(R\) was made by sweeping the angles of \(φ\) from ranges \(0\) to \(2π\).
+                </p>
+                <p>Note, however, that we would be looking at a 2D screen and can only see the x and y axis. So, our current output, whilst still a rendered donut, would look like Figure 5 below:</p>
+                <br>
+                <img src="draftprojects/donut/figure5.png" class="figure" id="figure5" height="300px" width="300px">
+                <figcaption>Figure 5: A 2D view of a 3D torus from the side with the small and large radius annotated. The figure is a sketch by the author. </figcaption>
+                
+                <p>To animate it such that it rotates about all the axes, we can simply multiply the coordinate: \((R + rcos(θ), rsin(θ), 0)\) by all the rotational matrices. These matrices are generally defined as below:
+                    $$R_x (θ ) = \begin{pmatrix} 1 & 0 & 0 \\ 0 & cosθ & -sinθ \\ 0 & sinθ & cosθ \end{pmatrix} $$
+                    $$R_y (θ ) = \begin{pmatrix} cosθ & 0 & sinθ \\ 0 & 1 & 0 \\ -sinθ & 0 & cosθ \end{pmatrix} $$
+                    $$R_z (θ ) = \begin{pmatrix} cosθ & -sinθ & 0\\ sinθ & cosθ & 0 \\ 0 & 0 & 1 \end{pmatrix} $$
+                    We already justified the usage of \(φ\) in \(R_y (φ)\) as the angle which we sweep for all 360 degrees of the larger circle with radius \(R\). If we were to do something similar for \(R_x (θ)\) and \(R_z (θ)\), however, we would find that our donut would rotate very slowly around both axes. Instead of sweeping through all 360 degrees, we will instead set some arbitrary X and Z values which will determine the rotation speed. This can then be adjusted according to the user. Our rotational matrices will therefore be defined as:
+                    $$R_x (X) = \begin{pmatrix} 1 & 0 & 0 \\ 0 & cosX & -sinX \\ 0 & sinX & cosX \end{pmatrix} $$
+                    $$R_y (φ ) = \begin{pmatrix} cosφ & 0 & sinφ \\ 0 & 1 & 0 \\ -sinφ & 0 & cosφ \end{pmatrix} $$
+                    $$R_z (Z) = \begin{pmatrix} cosZ & -sinZ & 0\\ sinZ & cosZ & 0 \\ 0 & 0 & 1 \end{pmatrix} $$
+                    When we multiply out our given coordinates with the rotational matrices, we get the following result:
+                    $$ \begin{pmatrix} x \\ y \\ z \end{pmatrix} = \begin{pmatrix} (R + rcosθ)(cosZcosφ + sinXsinZsinφ) – rcosXsinZsinθ) \\ (R + rcosθ)(cosφsinZ – cosZsinXsinφ) – rcosXcosZsinθ)  \\ cosX(R + rcosθ)sinφ + rsinXsinθ) \end{pmatrix} $$
+                    Now, if we go through all angles \(θ\), \(φ\), \(A\) and \(B\) then we will obtain the all the coordinates of our rotating torus. The next step is to project this 3D object that we have generated onto a 2D screen.
+                </p>
+                <br>
+
+                <h2>Projecting a 3D object on a 2D screen</h2>
+                <br>
+                By manipulating the coordinates \((x,y,z)\) such that all the information we require is given only by the x and y coordinates, plotting the resulting coordinates should display something that resembles the torus we constructed on a 2D plane. To do this, we can simply divide all points by z, which would give us: \( (\frac{x}{z}, \frac{y}{z}, 1 ) \). If we want to change the perspective of the object by flattening or elongating the depth, we could scale our coordinates by some desired constant \(a\) to give: \( (\frac{xa}{z}, \frac{ya}{z}, a ) \). Otherwise, if we wanted to move the torus further or closer from the screen, we could add or subtract some constant \(c\) from \(z\): \( (\frac{xa}{z + c}, \frac{ya}{z + c}, a ) \).
+                <br><br>
+                Typically, \(a\) is calculated based on the window size. Suppose that we want the distance from the centre of the torus to the edge of the torus to be 3/4ths of distance from the centre of the torus to the edge of the screen (which 1/2 the width of the overall window), then we would have the following equation:
+                $$ window width \times \frac{1}{2} \times \frac{3}{4} = r + R $$
+                However, this is not the full equation because we have also scaled the object by \(a\) and moved it back by \(c\) which changes the dimensions of our torus on a 2D screen. This means that our equation is actually:
+                $$ window width \times \frac{1}{2} \times \frac{3}{4} = \frac{a(r + R)}{c} $$
+                By rearranging for \(a\), we can find the scale which is suitable for us:
+                $$ a = window width \times \frac{3}{8} \times \frac{c}{r+R} $$
+                In the code, you may find an addition and subtraction of the window width and height respectively. This is because the origin is located at the top left corner of the window. To move this origin to the centre of the screen we start from the x and y coordinates of \( (\frac{window width}{2},\frac{window height}{2} ) \).
+                Using this, we can compute our completed projection equation, which is given below:
+                $$ \begin{pmatrix} x \\ y \end{pmatrix} = \begin{pmatrix} \frac{window width}{2} + \frac{xa}{z+c} \\ \frac{window height}{2} – \frac{ya}{z+c} \end{pmatrix} $$
+
+                <h2>Shading and calculating luminance</h2>
+                <br>
+                In our code, we used ASCII characters of different densities “.,-~:;=!*#$@” to shade in the rotating torus. To do this, we required a measurement of luminance which was obtained from taking the dot product of the surface normal and the light direction. This returns us, for some surface normal \(A\) and light direction \(B\), \( \vec{A} \cdot \vec{B} = |A||B|cosθ \). Since the range of \(cosθ\) is between \(-1\) and \(1\) for all angles from \(0\) and \(2π\), our dot product must be of range \(-|A||B|\) to \(|A||B|\). From this result, we can manipulate the range such that it is discrete, and each value corresponds to an ASCII character which we will use to shade in the donut.  
+                <br><br>
+                Before this, we need to obtain the two vectors. For the light direction, we can pick an arbitrary position, but for the surface normal of the torus, we require either some geometric intuition or 3D calculations and partial derivatives. 
+                <br><br>
+                A surface normal is defined as the unit vector which is perpendicular to a surface. For the edge of the torus, the surface normal is given by \(A\) in the diagram below:
+                <br><br>
+                <img src="draftprojects/donut/figure6.png" class="figure" id="figure6" height="300px" width="300px">
+                <figcaption>Figure 6: A 2D view of a 3D torus from the side with the surface normal, \(A\), annotated on the diagram. The figure is a sketch by the author. </figcaption>
+                <p>Note that the surface normal of the right circle would be the same as that of the left circle for all surface normal vectors A, which would also be the exact same as a circle with the centre at the origin O. This lets us simplify our maths slightly. Instead of having to calculate the surface normal at the surface of the torus shown in in the diagram above, we can instead just calculate the surface normal of a circle with an arbitrary radius at the origin. In order words, we can calculate the surface normal using \((cos⁡θ,sinθ,0)\) instead of \((R+rcosθ,rsinθ,0)\) because they give the same result. This is given by the same calculation as before. Here I denote the surface normal coordinate as \(SN\): 
+                    $$ (SN_x , SN_y, SN_z ) = (cosθ,sinθ,0) \cdot R_x (X) \cdot R_y (φ) \cdot R_z (Z) $$
+                    If we choose the light direction to come from behind and above the viewer: \((0,1,-1)\), then we can calculate the dot product between these two vectors to give us the degree of luminance. The result here is:
+                    $$ L = (SN_x , SN_y, SN_z ) \cdot (0,1,-1) $$
+                    $$ =cosφcosθsinZ-cosXcosθcosφ-sinXsinθ+cosZ(cosXsinθ-cosθsinXsinφ) $$
+                    In this case, after sweeping through all the angles, we will find that the dot product will range from \( - \sqrt{2} \) to \( \sqrt{2} \). The higher the magnitude of the dot product, the brighter the surface is and vice versa. 
+                </p> 
+                <br>
+                Now we can make some modifications.
+                <br><br>
+                Firstly, since our object will appear on a 2D screen, we can ignore any shading that the user cannot see. This is done in two ways. Since we have already calculated all the 3D coordinates of the torus, we can store the z values of each coordinate and only render in the front most coordinate as all other coordinates will not be visible. This is what we refer to as a Z-buffer. Then, we have another layer to decrease computational cost. If the dot product we calculate is negative, it must mean that the surface normal is facing away from the light, so we can simply disregard it. This gives us a new range from \(0\) to \( \sqrt{2} \). 
+                <br><br>
+                Secondly, as we use an ASCII luminance index given by “.,-~:;=!*#$@” which has 12 characters, we need to adjust the dot product range from \(0\) to \( \sqrt{2} \) to \(0\) to \(11\). This can be done by multiplying the dot product by 8, giving us a range 0 to 11.3. If we take the integer value of this in a programming language, it should return us 11 where each integer from 0 to 11 corresponds with a character in our ASCII luminance index.
+                <br><br>
+                <h2>Closing words</h2>
+                <br>
+                Within this page, we have explored some of the mechanisms which allow us to render this rotating torus. Although a large part of the shading component has not been explored too deeply, the method we use here serves as a nice taste for those who may be interested in doing game design or anything related to shading and rendering. An introduction of shading is given by the following links <a href="http://tfpsly.free.fr/english/index.html?url=http://tfpsly.free.fr/Docs/3dIca/3dica.htm" class="normallink">3DICA</a>, <a href="https://thebookofshaders.com/" class="normallink">The book of shaders</a>, and <a href="http://cosinekitty.com/raytrace/contents.html" class="normallink">Fundamentals to Ray Tracing.</a>
+                <br>
+                <br>
+                <h2>References</h2>
+                <br>
+                <a href="https://www.a1k0n.net/2011/07/20/donut-math.html" target="_blank" class="normallink">Inspiration</a>
+                <br><br>
+                <a href="https://trecs.se/torus.php" target="_blank" class="normallink">Torus properties</a>
+                <br><br>
+                <a href="https://austinmorlan.com/posts/rotation_matrices/" target="_blank" class="normallink">Rotational matrices</a>
+                <br><br>
+                <a href="https://www.nagwa.com/en/explainers/325184982319/" target="_blank" class="normallink">3D dot product</a>
+                <br><br>
+                <a href="http://cosinekitty.com/raytrace/chapter13_torus.html" target="_blank" class="normallink">Surface normal of Torus</a>
+                <br><br>
+                <a href="http://tfpsly.free.fr/english/index.html?url=http://tfpsly.free.fr/Docs/3dIca/3dica.htm" target="_blank" class="normallink">Projection</a>
+                <br><br>
+                <a href="http://tfpsly.free.fr/english/index.html?url=http://tfpsly.free.fr/Docs/3dIca/3dica.htm" target="_blank" class="normallink">Shading</a>
+                </p>
+            </main>
+        </div>
+    </div>
+    <script src="assets/js/toggleMenu.js"></script>
+    
+    </body>
+    <footer>
+        <p>&copy; 2022 officialletai.com</p>
+    </footer>
+</html>

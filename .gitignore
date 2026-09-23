@@ -1,0 +1,30 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Pytest & testing cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Audio artifacts
+*.raw
+sdlaudio.raw
+
+# Agent scratch and internal tracking files
+.agents/
+ORIGINAL_REQUEST.md
+TEST_READY.md
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# OS / Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
