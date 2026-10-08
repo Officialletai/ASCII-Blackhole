@@ -1,0 +1,238 @@
+{
+  "timestamp": "2026-10-07T12:06:52.230Z",
+  "target": "C:\\Users\\offic\\.gemini\\antigravity\\scratch\\event_horizon\\index.html",
+  "artifactsDir": "C:\\Users\\offic\\.gemini\\antigravity\\scratch\\event_horizon\\artifacts",
+  "chrome": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+  "durationSec": 38.29,
+  "summary": {
+    "total": 32,
+    "passed": 32,
+    "failed": 0
+  },
+  "results": [
+    {
+      "id": "TC-101",
+      "name": "Single Standalone Deliverable",
+      "tier": 1,
+      "status": "PASSED",
+      "details": "Size: 58.5 KB, 0 external script/link tags"
+    },
+    {
+      "id": "TC-102",
+      "name": "Hardware-Accelerated WebGL 2.0 Context",
+      "tier": 1,
+      "status": "PASSED",
+      "details": "Renderer: ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11), MaxTexture: 16384"
+    },
+    {
+      "id": "TC-103",
+      "name": "Clean Intro Screen Display",
+      "tier": 1,
+      "status": "PASSED",
+      "details": "Text: \"EVENT HORIZON — PRESS SPACE TO BEGIN EVENT HORIZON — press SPACE to begin\""
+    },
+    {
+      "id": "TC-103A",
+      "name": "Artifact 6 Capture (artifact_intro_hud.png)",
+      "tier": 1,
+      "status": "PASSED",
+      "details": "Captured 1920x1080 (36.8 KB)"
+    },
+    {
+      "id": "TC-104",
+      "name": "Spacebar Intro Dismissal & Mode 1 Transition",
+      "tier": 1,
+      "status": "PASSED",
+      "details": "Mode: 1, Title: \"MODE 1 // ASCII MONOCHROME P1 Green Phosphor CRT Terminal • Scanlines & Curvature\""
+    },
+    {
+      "id": "TC-105",
+      "name": "Mode 1 ASCII Green CRT Render & Capture",
+      "tier": 1,
+      "status": "PASSED",
+      "details": "Captured artifact_mode1_ascii_crt.png (619.7 KB)"
+    },
+    {
+      "id": "TC-106",
+      "name": "Mode 2 Direct Jump via \"2\" (ASCII Colour Thermal)",
+      "tier": 1,
+      "status": "PASSED",
+      "details": "Mode: 2, Captured artifact_mode2_ascii_colour.png (465.8 KB)"
+    },
+    {
+      "id": "TC-107",
+      "name": "Mode 3 Direct Jump via \"3\" (Realistic Deflection LUT)",
+      "tier": 1,
+      "status": "PASSED",
+      "details": "Mode: 3, Captured artifact_mode3_realistic_lut.png (967.7 KB)"
+    },
+    {
+      "id": "TC-108",
+      "name": "Mode 4 Direct Jump via \"4\" (Cinematic RK4 - Hollywood)",
+      "tier": 1,
+      "status": "PASSED",
+      "details": "Mode: 4, Captured artifact_mode4_cinematic_hollywood.png (2355.1 KB)"
+    },
+    {
+      "id": "TC-109",
+      "name": "Mode 4 Hollywood vs Physical Toggle via \"H\"",
+      "tier": 1,
+      "status": "PASSED",
+      "details": "isHollywood: false, Captured artifact_mode4_cinematic_physical.png (2318.0 KB)"
+    },
+    {
+      "id": "TC-110",
+      "name": "Minimalist HUD Toggle via \"Tab\"",
+      "tier": 1,
+      "status": "PASSED",
+      "details": "Toggled from true -> false -> true"
+    },
+    {
+      "id": "TC-111",
+      "name": "Presenter Auto-Orbit Toggle via \"O\"",
+      "tier": 1,
+      "status": "PASSED",
+      "details": "Toggled presenterActive: true -> false"
+    },
+    {
+      "id": "TC-112",
+      "name": "Camera View Reset via \"R\"",
+      "tier": 1,
+      "status": "PASSED",
+      "details": "Camera restored towards default coordinates"
+    },
+    {
+      "id": "TC-113",
+      "name": "Manual Resolution Scale Adjustment via \"[\" and \"]\"",
+      "tier": 1,
+      "status": "PASSED",
+      "details": "Scale transitions: 1 -> 0.9 -> 1"
+    },
+    {
+      "id": "TC-201",
+      "name": "Rapid Mode Switch Thrashing Resilience",
+      "tier": 2,
+      "status": "PASSED",
+      "details": "Final settled mode: 1, 0 runtime errors"
+    },
+    {
+      "id": "TC-202",
+      "name": "Camera Pitch Singularity / Gimbal Lock Avoidance",
+      "tier": 2,
+      "status": "PASSED",
+      "details": "Pitch: 0.031, ViewMatrix hasNaN: false"
+    },
+    {
+      "id": "TC-203",
+      "name": "Camera Radial Distance Clamping ([3.5, 35.0] rs)",
+      "tier": 2,
+      "status": "PASSED",
+      "details": "Min radius: 3.50, Max radius: 35.00"
+    },
+    {
+      "id": "TC-204",
+      "name": "Resolution Scale Bounds Clamping ([0.4, 1.0])",
+      "tier": 2,
+      "status": "PASSED",
+      "details": "Clamped range: [0.4, 1.0]"
+    },
+    {
+      "id": "TC-205",
+      "name": "Unmapped Keystroke Resilience",
+      "tier": 2,
+      "status": "PASSED",
+      "details": "No unhandled exceptions or error events emitted"
+    },
+    {
+      "id": "TC-206",
+      "name": "Doppler Indicator Inactive in Mode 1",
+      "tier": 2,
+      "status": "PASSED",
+      "details": "HUD Doppler overlay remains hidden in non-Mode 4 render modes"
+    },
+    {
+      "id": "TC-301",
+      "name": "Mode Switch During Active Mouse Drag",
+      "tier": 3,
+      "status": "PASSED",
+      "details": "Active mode resolved to 3 without input lock or crash"
+    },
+    {
+      "id": "TC-302",
+      "name": "Resolution Scale Mid-Crossfade Transition",
+      "tier": 3,
+      "status": "PASSED",
+      "details": "Transition resolved to Mode 4 with scale 0.8"
+    },
+    {
+      "id": "TC-303",
+      "name": "Camera Reset During Active Auto-Orbit",
+      "tier": 3,
+      "status": "PASSED",
+      "details": "Presenter orbit remains enabled while camera angle resets"
+    },
+    {
+      "id": "TC-304",
+      "name": "HUD Toggle During Title Card Animation",
+      "tier": 3,
+      "status": "PASSED",
+      "details": "Overlays coexist without DOM or CSS layout conflicts"
+    },
+    {
+      "id": "TC-305",
+      "name": "Sequential Space Cycle Wrap (1 -> 2 -> 3 -> 4 -> 1)",
+      "tier": 3,
+      "status": "PASSED",
+      "details": "Traversal sequence: 1 -> 2 -> 3 -> 4 -> 1"
+    },
+    {
+      "id": "TC-306",
+      "name": "Rapid Hollywood Toggle in Mode 4",
+      "tier": 3,
+      "status": "PASSED",
+      "details": "Synchronized boolean state: true"
+    },
+    {
+      "id": "TC-401",
+      "name": "Live FPS Counter & Telemetry Readout in HUD",
+      "tier": 4,
+      "status": "PASSED",
+      "details": "FPS Readout: \"FPS: 143.9 (6.9ms)\", Live FPS: 143.9"
+    },
+    {
+      "id": "TC-402",
+      "name": "Target Frame Pacing Verification (30 frames sampled)",
+      "tier": 4,
+      "status": "PASSED",
+      "details": "Average sampled FPS: 146.3 (6.84 ms/frame)"
+    },
+    {
+      "id": "TC-403",
+      "name": "Memory Stability & Heap Leak Audit",
+      "tier": 4,
+      "status": "PASSED",
+      "details": "Heap: 9.54 MB / 9.54 MB"
+    },
+    {
+      "id": "TC-404",
+      "name": "Strict Zero External Network Requests Audit",
+      "tier": 4,
+      "status": "PASSED",
+      "details": "Intercepted 0 local requests, 0 illegal external requests"
+    },
+    {
+      "id": "TC-405",
+      "name": "Strict Zero Console Errors & Exceptions Audit",
+      "tier": 4,
+      "status": "PASSED",
+      "details": "Errors: 0, Exceptions: 0"
+    },
+    {
+      "id": "TC-406",
+      "name": "Verification of All 6 Authoritative PNG Artifacts",
+      "tier": 4,
+      "status": "PASSED",
+      "details": "\n    • artifact_mode1_ascii_crt.png: OK (1920x1080, 619.7 KB)\n    • artifact_mode2_ascii_colour.png: OK (1920x1080, 465.8 KB)\n    • artifact_mode3_realistic_lut.png: OK (1920x1080, 967.7 KB)\n    • artifact_mode4_cinematic_hollywood.png: OK (1920x1080, 2355.1 KB)\n    • artifact_mode4_cinematic_physical.png: OK (1920x1080, 2318.0 KB)\n    • artifact_intro_hud.png: OK (1920x1080, 36.8 KB)"
+    }
+  ]
+}

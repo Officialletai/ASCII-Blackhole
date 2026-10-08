@@ -1,78 +1,78 @@
 # ASCII Black Hole: Real-Time Relativistic Schwarzschild Renderer
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/)
-[![Tests](https://img.shields.io/badge/tests-63%20passed-brightgreen.svg)]()
+[![WebGL 2.0](https://img.shields.io/badge/WebGL-2.0%20%2F%20GLSL%203.00-orange.svg)]()
+[![Tests](https://img.shields.io/badge/tests-passed-brightgreen.svg)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A real-time, interactive ASCII black hole renderer written in Python and Pygame. It captures the iconic *Interstellar* / Jean-Pierre Luminet silhouette—central black hole shadow, gravitational lensing with double-lensed rear accretion disk halos, Keplerian differential shear, and relativistic Doppler beaming—running at **300+ FPS** in pure Python using general relativity mathematical shortcuts.
+A real-time, interactive relativistic black hole visualizer available both as an in-browser WebGL2 application ([`index.html`](index.html)) and as a desktop Python/Pygame engine ([`blackhole.py`](blackhole.py)). It captures the iconic *Interstellar* / Jean-Pierre Luminet silhouette—central black hole shadow, gravitational lensing with double-lensed rear accretion disk halos, Keplerian differential shear, and relativistic Doppler beaming—running at **140–300+ FPS** using general relativistic null geodesics.
 
 Inspired by [Andy Sloane's Donut Math](https://www.a1k0n.net/2011/07/20/donut-math.html) and [Tai Le's Spinning Donut](donut.html).
 
-```text
-                           .-'""*#$@*""'-.
-                        .-'               '-.
-                       /     . - ~ - .       \
-        @@@@####****= :     /         \       : -;;;;====****
-       @@@@####****== |    (  SHADOW   )      | -;;;====****
-        @@@@####****= :     \         /       : -;;;;====****
-                       \     ` - ~ - '       /
-                        '-.               .-'
-                           '-._______.-'
-```
+---
+
+## 🌌 Web Experience: "Event Horizon" (`index.html`)
+
+A single, self-contained HTML file (pure WebGL2 + inline GLSL, zero build steps, zero CDNs, works 100% offline). Double-click [`index.html`](index.html) in Chrome/Edge/Firefox or deploy directly via GitHub Pages!
+
+### 4 Narrative Modes
+
+| Mode 1: ASCII Monochrome CRT | Mode 2: ASCII Colour Thermal |
+| :---: | :---: |
+| ![Mode 1](artifacts/artifact_mode1_ascii_crt.png) | ![Mode 2](artifacts/artifact_mode2_ascii_colour.png) |
+| *P1 Green Phosphor CRT Terminal, scanlines & bloom* | *Planckian black-body thermal radiation gradient* |
+
+| Mode 3: Realistic Deflection LUT | Mode 4: Cinematic RK4 (Hollywood / Physical) |
+| :---: | :---: |
+| ![Mode 3](artifacts/artifact_mode3_realistic_lut.png) | ![Mode 4 Hollywood](artifacts/artifact_mode4_cinematic_hollywood.png) |
+| *Analytical Binet deflection LUT & lensed starfield* | *Per-pixel RK4 geodesics, volumetric disk & bloom* |
+
+- **Mode 1 (ASCII Monochrome)**: Green phosphor terminal aesthetic with scanlines and glow.
+- **Mode 2 (ASCII Colour)**: Quantized thermal black-body radiation ramp over the ASCII cell grid.
+- **Mode 3 (Realistic)**: Smooth per-pixel render using a precomputed deflection lookup table, lensed stars, and dual accretion arches.
+- **Mode 4 (Cinematic)**: Full per-pixel ray-marched null geodesics (RK4 integration of the photon orbit equation), continuous 3D volumetric disk, HDR bloom, anamorphic lens flares, and ACES filmic tone mapping.
+  - Press **`H`** in Mode 4 to toggle between **Hollywood Mode** (symmetric golden disk) and **Physically Accurate Mode** (relativistic Doppler beaming & spectral blueshift).
+
+### Web Controls (`index.html`)
+
+| Input | Action |
+| :--- | :--- |
+| **`SPACE`** | Dismiss intro / Cycle forward to the next render mode |
+| **`1` – `4`** | Jump directly to Mode 1, 2, 3, or 4 with smooth ~1s crossfade |
+| **`H`** | In Mode 4: Toggle Hollywood (Symmetric Golden) vs Physical (Doppler Beamed) |
+| **`O`** | Toggle Presenter Camera auto-orbit / cinematic drift |
+| **Mouse Drag** | Orbit camera around the black hole |
+| **Mouse Scroll** | Zoom camera closer / farther ($3.5\, r_s$ to $35.0\, r_s$) |
+| **`R`** | Reset camera view to default inclination & distance |
+| **`[` / `]`** | Decrease / increase dynamic render resolution scale |
+| **`TAB`** | Toggle Minimalist HUD (FPS, telemetry, render scale) |
+| **`F`** | Toggle Fullscreen |
 
 ---
 
-## Features
+## 🐍 Desktop Python Engine (`blackhole.py`)
 
-- **General Relativity "Cheats" (1D Geodesic LUT)**: Exploits spherical symmetry in Schwarzschild spacetime by precomputing deflection angles $\Delta \phi(b)$ into a 1D radial look-up table, reducing curved ray-tracing from numerical differential equation integration to an instant $O(1)$ table lookup per pixel.
-- **Accurate Shadow Boundary**: Correctly culls rays inside the critical impact parameter $b_{\text{crit}} = \frac{3\sqrt{3}}{2} r_s \approx 2.598 r_s$ (the photon sphere capture threshold).
-- **Warped Accretion Disk**: Analytically solves ray-plane intersections to render both the direct front disk and the gravitationally lensed rear disk curled over the top and under the bottom of the shadow.
-- **Animated Keplerian Swirl**: Gas differentially rotates according to Kepler's third law in curved spacetime:
-  $$\Omega(r) \propto r^{-3/2}$$
-  Inner gas near $r_{\text{ISCO}} = 3 r_s$ orbits over $6\times$ faster than the outer rim at $r = 10 r_s$, carrying multi-arm spiral density waves ($m=1, 2, 3, 5$) and turbulent plasma hotspots.
-- **Relativistic Doppler Beaming**: Relativistic orbital velocities ($\sim 0.41c$) boost approaching plasma by $g^4$, causing the left side to surge into brilliant `@`, `#`, and `$` characters while the receding right side dims to faint red embers.
-- **True Fullscreen & Responsive Resizing**: Press `F` or `F11` to toggle borderless fullscreen; the monospace character grid automatically recalculates to fill any display resolution without distortion.
-- **Live Speed Controls**: Fine-tune the swirl speed dynamically on the fly (`[` and `]`).
-- **Dual Display Modes**: Toggle between classic monochrome ASCII and glowing Planckian thermal heat colors with `C`.
+A standalone desktop ASCII renderer in pure Python and Pygame running at 300+ FPS.
 
----
+### Installation & Quick Start
 
-## Mathematical Guide
-
-For a complete first-principles walkthrough starting from **Pythagoras' Theorem** ($a^2 + b^2 = c^2$) and building step-by-step through spherical coordinates, 4D Minkowski spacetime, gravitational time dilation, the exact Schwarzschild metric, and null geodesics ($ds^2 = 0$), see:
-
-👉 **[blackhole.md](blackhole.md)** — *The Complete Mathematical Guide*
-
----
-
-## Installation & Quick Start
-
-### 1. Clone the repository
 ```bash
+# 1. Clone repository
 git clone https://github.com/Officialletai/ASCII-Blackhole.git
 cd ASCII-Blackhole
-```
 
-### 2. Install dependencies
-```bash
+# 2. Install dependencies
 pip install -r requirements.txt
-```
 
-### 3. Run the interactive renderer
-```bash
-# Standard windowed mode
+# 3. Run the desktop renderer
 python blackhole.py
 
-# Launch directly in fullscreen
+# Optional flags:
 python blackhole.py --fullscreen
-
-# Custom animation speed (e.g. 0.35x)
 python blackhole.py --speed 0.35
 ```
 
----
-
-## Interactive Controls
+### Python Controls (`blackhole.py`)
 
 | Input | Action |
 | :--- | :--- |
@@ -82,44 +82,67 @@ python blackhole.py --speed 0.35
 | **`F` / `F11`** | Toggle True Fullscreen on / off |
 | **`Space`** | Reverse Keplerian accretion swirl direction |
 | **`C`** | Toggle monochrome ASCII (`.,-~:;=!*#$@`) vs thermal heat colors |
-| **Mouse Drag** | Interactive 3D camera orbit (inclination & azimuth) |
+| **Mouse Drag** | Interactive 3D camera orbit |
 | **Scroll Wheel** / `+` / `-` | Zoom camera in and out |
 | **`R`** | Reset camera view |
 | **`H` / `Tab`** | Toggle HUD telemetry overlay |
-| **`Esc`** | Exit fullscreen (or quit if already windowed) |
+| **`Esc`** | Exit fullscreen (or quit if windowed) |
 
 ---
 
-## Verification & Testing
+## 📐 Mathematical Guide
 
-The repository includes a comprehensive 4-tier automated test suite covering analytical constants, boundary conditions, cross-feature invariants, and headless execution:
+For a complete first-principles walkthrough starting from **Pythagoras' Theorem** ($a^2 + b^2 = c^2$) and building step-by-step through spherical coordinates, 4D Minkowski spacetime, gravitational time dilation, the exact Schwarzschild metric, and null geodesics ($ds^2 = 0$), see:
 
+👉 **[blackhole.md](blackhole.md)** — *The Complete Mathematical Guide*
+
+---
+
+## 🧪 Verification & Testing
+
+### Python Test Suite
 ```bash
-# Run all 63 unit and integration tests
+# Run 63 unit and integration tests
 python test_blackhole.py
 
-# Run built-in self-tests
+# Run built-in self-tests & benchmarks
 python blackhole.py --test
-
-# Run headless performance benchmark
 python blackhole.py --benchmark
+```
+
+### WebGL / Web Test Suite (Node.js CDP)
+```bash
+# Run automated headless Chrome E2E test harness (32 tests)
+node tests/qa_harness.mjs
+
+# Run adversarial stress testing suite (9 scenarios)
+node tests/stress_harness.mjs
+
+# Run relativistic physics and shadow probe (17 assertions)
+node tests/empirical_physics_probe.mjs
 ```
 
 ---
 
-## Project Structure
+## 📂 Project Structure
 
 ```text
-├── blackhole.py        # Core real-time ASCII engine and Pygame application
+├── index.html          # WebGL2 standalone real-time visualizer ("Event Horizon")
+├── blackhole.py        # Core desktop Python/Pygame ASCII engine
 ├── blackhole.md        # Comprehensive first-principles mathematical guide
-├── test_blackhole.py   # 4-tier automated test suite (63 tests)
+├── test_blackhole.py   # Python test suite (63 unit tests)
+├── tests/              # Automated WebGL2 headless QA & stress test harnesses
+│   ├── qa_harness.mjs
+│   ├── stress_harness.mjs
+│   └── empirical_physics_probe.mjs
+├── artifacts/          # 1080p rendered screenshots & QA report
 ├── donut.html          # Original inspiration article by Tai Le
-├── requirements.txt    # Python dependencies (pygame, numpy, pytest)
-└── README.md           # Project overview and instructions
+├── requirements.txt    # Python dependencies
+└── README.md           # Project documentation
 ```
 
 ---
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

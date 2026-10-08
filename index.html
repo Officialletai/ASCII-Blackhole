@@ -1,0 +1,1549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Event Horizon — Relativistic Schwarzschild Black Hole Visualizer</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: #000000;
+      overflow: hidden;
+      font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Monaco, Consolas, 'Courier New', monospace;
+      color: #e0e0e0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    #glcanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      cursor: grab;
+      touch-action: none;
+    }
+    #glcanvas:active {
+      cursor: grabbing;
+    }
+    #ui {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    /* Intro Screen */
+    #intro-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #000000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      pointer-events: auto;
+      transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.8s;
+    }
+    #intro-screen.fade-out {
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+    .intro-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 2rem;
+    }
+    .intro-title {
+      font-size: clamp(2.2rem, 5.5vw, 4.5rem);
+      font-weight: 300;
+      letter-spacing: 0.35em;
+      color: #ffffff;
+      text-transform: uppercase;
+      margin-bottom: 0.6rem;
+      text-shadow: 0 0 30px rgba(255, 255, 255, 0.4);
+    }
+    .intro-dash {
+      font-size: 1.4rem;
+      color: #444444;
+      margin-bottom: 0.6rem;
+      display: block;
+    }
+    .intro-sub {
+      font-size: clamp(0.85rem, 1.6vw, 1.2rem);
+      letter-spacing: 0.25em;
+      color: #888888;
+      text-transform: uppercase;
+      animation: introPulse 2.4s infinite ease-in-out;
+    }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    @keyframes introPulse {
+      0%, 100% { opacity: 0.3; transform: scale(0.99); }
+      50% { opacity: 1.0; transform: scale(1.0); }
+    }
+    /* Title Cards */
+    #title-card {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      pointer-events: none;
+      z-index: 50;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.5s ease-out, transform 0.5s ease-out, visibility 0.5s;
+    }
+    #title-card.show {
+      opacity: 1;
+      visibility: visible;
+      transform: translate(-50%, -50%);
+    }
+    #title-card.fade-out {
+      opacity: 0;
+      visibility: hidden;
+      transform: translate(-50%, -58%);
+    }
+    #title-text {
+      font-size: clamp(1.4rem, 3.2vw, 2.4rem);
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      color: #ffffff;
+      margin-bottom: 0.5rem;
+      text-shadow: 0 0 20px rgba(0, 0, 0, 0.9), 0 0 10px rgba(255, 255, 255, 0.3);
+    }
+    #title-sub {
+      font-size: clamp(0.75rem, 1.4vw, 1rem);
+      letter-spacing: 0.12em;
+      color: #bbbbbb;
+      text-shadow: 0 0 12px rgba(0, 0, 0, 0.9);
+    }
+    /* Minimalist HUD Overlay */
+    #hud {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 40;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: opacity 0.3s ease;
+    }
+    #hud.hidden {
+      display: none !important;
+    }
+    .hud-top-left {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+    .hud-top-right {
+      position: absolute;
+      top: 1.5rem;
+      right: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.4rem;
+    }
+    .hud-item {
+      font-size: 0.82rem;
+      letter-spacing: 0.08em;
+      color: #cccccc;
+      background: rgba(10, 10, 10, 0.7);
+      padding: 0.3rem 0.65rem;
+      border-radius: 4px;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      width: fit-content;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    }
+    .hud-item.bold {
+      font-weight: 700;
+      color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+    .hud-item.hidden {
+      display: none !important;
+    }
+    .hud-bottom {
+      align-self: center;
+      font-size: 0.75rem;
+      letter-spacing: 0.06em;
+      color: #999999;
+      background: rgba(10, 10, 10, 0.75);
+      padding: 0.45rem 1.1rem;
+      border-radius: 6px;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      text-align: center;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    }
+    .hud-key {
+      color: #ffffff;
+      font-weight: 600;
+      padding: 0.1rem 0.35rem;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 3px;
+      margin: 0 0.15rem;
+    }
+    #toast {
+      position: absolute;
+      top: 14%;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 60;
+      padding: 0.6rem 1.3rem;
+      font-size: clamp(0.8rem, 1.5vw, 1.1rem);
+      letter-spacing: 0.14em;
+      color: #ffd9a0;
+      background: rgba(10, 10, 10, 0.72);
+      border: 1px solid rgba(255, 217, 160, 0.35);
+      border-radius: 4px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+    }
+    #toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+  <canvas id="glcanvas"></canvas>
+  <div id="ui">
+    <div id="intro-screen">
+      <div class="intro-container">
+        <h1 class="intro-title">EVENT HORIZON</h1>
+        <div class="intro-dash">—</div>
+        <p class="intro-sub">press SPACE to begin</p>
+        <span class="sr-only">EVENT HORIZON — press SPACE to begin</span>
+      </div>
+    </div>
+    <div id="toast"></div>
+    <div id="title-card">
+      <h1 id="title-text">MODE 1 // ASCII MONOCHROME</h1>
+      <p id="title-sub">P1 Green Phosphor CRT Terminal • Scanlines & Curvature</p>
+    </div>
+    <div id="hud">
+      <div class="hud-top-left">
+        <div id="hud-mode" class="hud-item bold">MODE 1 // ASCII MONOCHROME</div>
+        <div id="hud-fps" class="hud-item">FPS: 60.0 (16.6ms)</div>
+        <div id="hud-res" class="hud-item">SCALE: 1.0x (1920x1080)</div>
+      </div>
+      <div class="hud-top-right">
+        <div id="hud-doppler" class="hud-item hidden">[H] DOPPLER: HOLLYWOOD</div>
+        <div id="hud-orbit" class="hud-item">[O] AUTO-ORBIT: ON</div>
+      </div>
+      <div class="hud-bottom">
+        <span class="hud-key">1-4</span> Mode Jump |
+        <span class="hud-key">SPACE</span> Next Mode |
+        <span class="hud-key">H</span> Doppler Toggle |
+        <span class="hud-key">O</span> Auto-Orbit |
+        <span class="hud-key">R</span> Reset View |
+        <span class="hud-key">F</span> Fullscreen |
+        <span class="hud-key">[ / ]</span> Res Scale |
+        <span class="hud-key">TAB</span> Toggle HUD
+      </div>
+    </div>
+  </div>
+
+
+  <script>
+    'use strict';
+
+    /* =========================================================================
+     * 1. Physical constants (G = c = 1, r_s = 1)
+     * ========================================================================= */
+    const RS = 1.0;
+    const R_PH = 1.5 * RS;
+    const B_CRIT = (3.0 * Math.sqrt(3.0) / 2.0) * RS;   // ~2.598
+    const R_ISCO = 3.0 * RS;
+    const R_OUT = 12.0 * RS;
+
+    /* =========================================================================
+     * 2. App state (contract used by the QA harness)
+     * ========================================================================= */
+    const APP_STATE = {
+      mode: 1,
+      targetMode: 1,
+      crossfadeAlpha: 1.0,
+      isHollywood: true,
+      presenterActive: true,
+      hudVisible: true,
+      renderScale: 1.0,
+      autoScale: true,
+      fps: 60.0,
+      introDismissed: false
+    };
+    window.APP_STATE = APP_STATE;
+    window.__EH_STATE__ = APP_STATE;
+
+    const MODE_METADATA = {
+      1: { title: 'MODE 1 // ASCII MONOCHROME', sub: 'P1 Green Phosphor CRT Terminal \u2022 Scanlines & Curvature' },
+      2: { title: 'MODE 2 // ASCII COLOUR', sub: 'Thermal Black-Body Palette \u2022 Quantized Radiation Grid' },
+      3: { title: 'MODE 3 // REALISTIC', sub: 'Precomputed Geodesic Lookup Table \u2022 Lensed Disk & Starfield' },
+      4: { title: 'MODE 4 // CINEMATIC', sub: 'RK4 Null Geodesics \u2022 Volumetric Disk \u2022 Filmic Pipeline' }
+    };
+
+    /* =========================================================================
+     * 3. Camera
+     *    World: black hole at origin, accretion disk in the x-z plane (normal +y).
+     *    phi is the camera elevation above the disk plane. 0.12 rad ~ 7 deg
+     *    elevation => the disk is tilted ~80 deg away from the line of sight.
+     * ========================================================================= */
+    const Camera = {
+      theta: 0.0, phi: 0.12, radius: 24.0,
+      thetaTarget: 0.0, phiTarget: 0.12, radiusTarget: 24.0,
+      defaultTheta: 0.0, defaultPhi: 0.12, defaultRadius: 24.0,
+      minRadius: 3.5, maxRadius: 35.0,
+      minPhi: -1.4835, maxPhi: 1.4835,
+      isDragging: false,
+      lastPointerX: 0, lastPointerY: 0,
+      eye: new Float32Array(3),
+      target: new Float32Array([0.0, 0.0, 0.0]),
+      viewMatrix: new Float32Array(16),
+
+      resetView() {
+        this.thetaTarget = this.defaultTheta;
+        this.phiTarget = this.defaultPhi;
+        this.radiusTarget = this.defaultRadius;
+      },
+
+      update(dt, timeSeconds, autoOrbit) {
+        if (autoOrbit && !this.isDragging) {
+          this.thetaTarget += 0.055 * dt;
+          this.phiTarget = this.defaultPhi + 0.075 * Math.sin(0.17 * timeSeconds);
+        }
+        this.phiTarget = Math.max(this.minPhi, Math.min(this.maxPhi, this.phiTarget));
+        this.radiusTarget = Math.max(this.minRadius, Math.min(this.maxRadius, this.radiusTarget));
+
+        const lambda = 1.0 - Math.exp(-10.0 * Math.min(dt, 0.1));
+        this.theta += (this.thetaTarget - this.theta) * lambda;
+        this.phi += (this.phiTarget - this.phi) * lambda;
+        this.radius += (this.radiusTarget - this.radius) * lambda;
+        this.phi = Math.max(this.minPhi, Math.min(this.maxPhi, this.phi));
+        this.radius = Math.max(this.minRadius, Math.min(this.maxRadius, this.radius));
+
+        const cp = Math.cos(this.phi), sp = Math.sin(this.phi);
+        const ct = Math.cos(this.theta), st = Math.sin(this.theta);
+        const ex = this.radius * cp * st, ey = this.radius * sp, ez = this.radius * cp * ct;
+        this.eye[0] = ex; this.eye[1] = ey; this.eye[2] = ez;
+
+        const invLen = 1.0 / Math.hypot(ex, ey, ez);
+        const fx = -ex * invLen, fy = -ey * invLen, fz = -ez * invLen;
+        let rx = -fz, ry = 0.0, rz = fx;
+        const rLen = Math.hypot(rx, rz);
+        if (rLen > 1e-6) { rx /= rLen; rz /= rLen; } else { rx = 1.0; rz = 0.0; }
+        const ux = ry * fz - rz * fy;
+        const uy = rz * fx - rx * fz;
+        const uz = rx * fy - ry * fx;
+        const m = this.viewMatrix;
+        m[0] = rx; m[1] = ry; m[2] = rz; m[3] = 0.0;
+        m[4] = ux; m[5] = uy; m[6] = uz; m[7] = 0.0;
+        m[8] = fx; m[9] = fy; m[10] = fz; m[11] = 0.0;
+        m[12] = 0.0; m[13] = 0.0; m[14] = 0.0; m[15] = 1.0;
+      },
+      getEye() { return this.eye; },
+      getViewMatrix() { return this.viewMatrix; }
+    };
+    window.Camera = Camera;
+
+    /* =========================================================================
+     * 4. WebGL2 context
+     * ========================================================================= */
+    const canvas = document.getElementById('glcanvas');
+    const gl = canvas.getContext('webgl2', {
+      alpha: false, depth: false, stencil: false, antialias: false,
+      preserveDrawingBuffer: false, powerPreference: 'high-performance'
+    });
+    if (!gl) {
+      document.body.innerHTML = '<div style="padding:2rem;color:#ff5555;font-family:monospace;font-size:1.2rem;">Fatal Error: WebGL 2.0 is not supported by your browser or graphics hardware.</div>';
+      throw new Error('WebGL2 unsupported');
+    }
+    const extFloat = gl.getExtension('EXT_color_buffer_float');
+    const HDR_INTERNAL = extFloat ? gl.RGBA16F : gl.RGBA8;
+    const HDR_TYPE = extFloat ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE;
+
+    /* ---- ASCII glyph atlas: ramp " .,-~:;=!*#$@" in 32x32 cells ---- */
+    const RAMP = ' .,-~:;=!*#$@';
+    function createAsciiAtlas() {
+      const n = RAMP.length, cw = 32, ch = 32;
+      const c = document.createElement('canvas');
+      c.width = cw * n; c.height = ch;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#000'; ctx.fillRect(0, 0, c.width, c.height);
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = 'bold 30px "Courier New", Consolas, monospace';
+      for (let i = 0; i < n; i++) {
+        ctx.save();
+        ctx.translate(i * cw + cw / 2, ch / 2 + 1);
+        ctx.scale(1.45, 1.0);
+        ctx.fillText(RAMP[i], 0, 0);
+        ctx.restore();
+      }
+      const tex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, c);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      return tex;
+    }
+    const atlasTex = createAsciiAtlas();
+
+    /* =========================================================================
+     * 5. Geodesic lookup tables (Modes 1-3)
+     *
+     *    A photon in Schwarzschild obeys the Binet equation u'' + u = 1.5 r_s u^2
+     *    with u = 1/r and ' = d/dphi, in the plane containing the camera, the
+     *    hole and the ray. The tables are parameterised by theta (the pixel ray's
+     *    angle from the direction to the hole, seen by a static camera at radius R):
+     *      orbit table  U(theta, phi) : 1/r after sweeping orbital angle phi
+     *                   (2.0 = swallowed, 0.0 = escaped)
+     *      deflection   PHI_END(theta): orbital angle at which the ray reaches
+     *                   infinity (-1 = captured, 1e4 = winds beyond the table)
+     *    Built once with RK4 and rebuilt (in place, no allocation) only when the
+     *    camera radius changes noticeably.
+     * ========================================================================= */
+    const LUT = {
+      NT: 512, NP: 512, PHI_MAX: 5.0 * Math.PI,
+      thetaC: 0.1, thetaMax: 0.95, R: -1.0,
+      orbit: new Float32Array(512 * 512),
+      defl: new Float32Array(512),
+      texOrbit: gl.createTexture(),
+      texDefl: gl.createTexture(),
+      uploaded: false
+    };
+    function lutTheta(x) {
+      if (x < 0.5) return Math.max(2.0 * x * LUT.thetaC, 1e-4);
+      const t = Math.pow((x - 0.5) * 2.0, 3.0);
+      return LUT.thetaC + t * (LUT.thetaMax - LUT.thetaC);
+    }
+    function buildLut(R) {
+      const NT = LUT.NT, NP = LUT.NP;
+      const u0 = 1.0 / R;
+      const h = LUT.PHI_MAX / (NP - 1), h2 = 0.5 * h, h6 = h / 6.0;
+      LUT.thetaC = Math.asin(Math.min(1.0, B_CRIT * Math.sqrt(1.0 - u0) / R));
+      LUT.thetaMax = Math.min(1.5, Math.max(0.95, LUT.thetaC + 0.5));
+      const orbit = LUT.orbit, defl = LUT.defl;
+      for (let ix = 0; ix < NT; ix++) {
+        const th = lutTheta(ix / (NT - 1));
+        let u = u0, up = u0 * Math.sqrt(1.0 - u0) / Math.tan(th);
+        let state = 0, pe = 1e4;
+        for (let ip = 0; ip < NP; ip++) {
+          orbit[ip * NT + ix] = state === 1 ? 2.0 : (state === 2 ? 0.0 : u);
+          if (state !== 0) continue;
+          const k1u = up, k1p = -u + 1.5 * u * u;
+          const u2 = u + h2 * k1u, p2 = up + h2 * k1p;
+          const k2u = p2, k2p = -u2 + 1.5 * u2 * u2;
+          const u3 = u + h2 * k2u, p3 = up + h2 * k2p;
+          const k3u = p3, k3p = -u3 + 1.5 * u3 * u3;
+          const u4 = u + h * k3u, p4 = up + h * k3p;
+          const k4u = p4, k4p = -u4 + 1.5 * u4 * u4;
+          const un = u + h6 * (k1u + 2.0 * k2u + 2.0 * k3u + k4u);
+          const upn = up + h6 * (k1p + 2.0 * k2p + 2.0 * k3p + k4p);
+          if (un >= 1.0) { state = 1; pe = -1.0; }
+          else if (un <= 0.0 && upn < 0.0) { state = 2; pe = ip * h + h * u / (u - un); }
+          u = un; up = upn;
+        }
+        defl[ix] = pe;
+      }
+      LUT.R = R;
+      gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
+      gl.bindTexture(gl.TEXTURE_2D, LUT.texOrbit);
+      if (!LUT.uploaded) {
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, NT, NP, 0, gl.RED, gl.FLOAT, orbit);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      } else {
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, NT, NP, gl.RED, gl.FLOAT, orbit);
+      }
+      gl.bindTexture(gl.TEXTURE_2D, LUT.texDefl);
+      if (!LUT.uploaded) {
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, NT, 1, 0, gl.RED, gl.FLOAT, defl);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      } else {
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, NT, 1, gl.RED, gl.FLOAT, defl);
+      }
+      LUT.uploaded = true;
+    }
+    function ensureLut(R) {
+      if (!LUT.uploaded || Math.abs(R - LUT.R) > 0.35) buildLut(R);
+    }
+    buildLut(Camera.defaultRadius);
+    window.__EH_LUT__ = LUT;
+
+    /* =========================================================================
+     * 6. GLSL
+     * ========================================================================= */
+    const VS = `#version 300 es
+    layout(location = 0) in vec2 a_position;
+    out vec2 v_uv;
+    void main() {
+      v_uv = a_position * 0.5 + 0.5;
+      gl_Position = vec4(a_position, 0.0, 1.0);
+    }`;
+
+    /* ---- Shared physics / disk / background code ---- */
+    const GLSL_COMMON = `#version 300 es
+    precision highp float;
+    precision highp int;
+    precision highp sampler2D;
+
+    in vec2 v_uv;
+    out vec4 fragColor;
+
+    uniform vec2  u_resolution;
+    uniform mat4  u_view_matrix;
+    uniform vec3  u_camera_pos;
+    uniform float u_time;
+    uniform float u_hollywood;
+
+    const float PI = 3.14159265359;
+    const float R_ISCO = 3.0;
+    const float R_OUT = 12.0;
+
+    float hash12(vec2 p) {
+      vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+      p3 += dot(p3, p3.yzx + 33.33);
+      return fract((p3.x + p3.y) * p3.z);
+    }
+    float hash13(vec3 p3) {
+      p3 = fract(p3 * 0.1031);
+      p3 += dot(p3, p3.zyx + 31.32);
+      return fract((p3.x + p3.y) * p3.z);
+    }
+    float vnoise3(vec3 p) {
+      vec3 i = floor(p), f = fract(p);
+      f = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);
+      float a = hash13(i),                  b = hash13(i + vec3(1,0,0));
+      float c = hash13(i + vec3(0,1,0)),    d = hash13(i + vec3(1,1,0));
+      float e = hash13(i + vec3(0,0,1)),    g = hash13(i + vec3(1,0,1));
+      float h = hash13(i + vec3(0,1,1)),    k = hash13(i + vec3(1,1,1));
+      return mix(mix(mix(a, b, f.x), mix(c, d, f.x), f.y),
+                 mix(mix(e, g, f.x), mix(h, k, f.x), f.y), f.z);
+    }
+
+    /* Planckian colour (linear RGB), T in Kelvin */
+    vec3 blackbody(float T) {
+      T = clamp(T, 1000.0, 15000.0) / 100.0;
+      float r = (T <= 66.0) ? 1.0 : 1.292936 * pow(T - 60.0, -0.1332047592);
+      float g = (T <= 66.0) ? 0.390081579 * log(T) - 0.631841444
+                            : 1.129890861 * pow(T - 60.0, -0.0755148492);
+      float b = (T >= 66.0) ? 1.0 : ((T <= 19.0) ? 0.0 : 0.543206789 * log(T - 10.0) - 1.196254089);
+      return pow(clamp(vec3(r, g, b), 0.0, 1.0), vec3(2.2));
+    }
+
+    /* ---------------- Lensed sky: isotropic stars + Milky Way band ---------------- */
+    vec3 starLayer(vec3 d, float K, float thr, float sig, float seed) {
+      vec3 p = d * K;
+      vec3 c = floor(p);
+      vec3 f = p - c;
+      float h = hash13(c + seed);
+      if (h < thr) return vec3(0.0);
+      vec3 s = 0.25 + 0.5 * vec3(hash13(c + seed + 7.1), hash13(c + seed + 13.7), hash13(c + seed + 23.3));
+      vec3 dv = f - s;
+      float m = hash13(c + seed + 41.9);
+      float glow = exp(-dot(dv, dv) / (sig * sig));
+      vec3 tint = mix(vec3(1.0, 0.78, 0.55), vec3(0.65, 0.8, 1.0), hash13(c + seed + 3.3));
+      return tint * glow * (0.35 + 3.2 * m * m * m * m);
+    }
+    vec3 background(vec3 d) {
+      vec3 n = normalize(vec3(0.50, 0.82, -0.29));
+      float lat = dot(d, n);
+      float band = exp(-lat * lat / (2.0 * 0.085 * 0.085));
+      vec3 col = starLayer(d, 55.0, 0.88, 0.11, 0.0)
+               + 0.8 * starLayer(d, 120.0, 0.93, 0.12, 19.0)
+               + 0.6 * starLayer(d, 240.0, 0.96 - 0.10 * band, 0.13, 37.0);
+      vec3 q = d * 3.0;
+      float cl = 0.6 * vnoise3(q * 1.7) + 0.3 * vnoise3(q * 3.9) + 0.15 * vnoise3(q * 8.1);
+      float dust = smoothstep(0.38, 0.70, vnoise3(q * 2.3 + 9.0));
+      vec3 core = normalize(vec3(-0.79, 0.56, 0.22));
+      float coreGlow = exp(1.6 * dot(d, core) - 1.6);
+      vec3 mw = mix(vec3(0.42, 0.52, 0.95), vec3(1.0, 0.78, 0.55), clamp(coreGlow * 1.3, 0.0, 1.0));
+      col += mw * band * (0.15 + cl) * (1.0 - 0.65 * dust * band) * (0.12 + 0.28 * coreGlow);
+      return col;
+    }
+
+    /* ---------------- Accretion disk model ---------------- */
+    /* r^-3/4 (1 - sqrt(r_isco/r))^1/4, normalised to its peak (~0.214 near r = 4.2) */
+    float tempProfile(float r) {
+      return clamp(pow(r, -0.75) * pow(max(0.0, 1.0 - sqrt(R_ISCO / r)), 0.25) / 0.2139, 0.0, 1.0);
+    }
+    /* Keplerian angular velocity profile  Omega ~ r^-1.5  (rad/s on screen) */
+    float omegaK(float r) { return 0.75 * pow(R_ISCO / r, 1.5); }
+
+    float diskFbm(vec3 p, int oct) {
+      float a = 0.5, s = 0.0, n = 0.0;
+      for (int i = 0; i < 4; i++) {
+        if (i >= oct) break;
+        s += a * vnoise3(p);
+        n += a;
+        p = p * 2.07 + vec3(5.2, 1.3, 3.7);
+        a *= 0.5;
+      }
+      return s / n;
+    }
+
+    /* Density / brightness modulation: spiral density waves, flow-mapped
+       Keplerian-sheared turbulence and orbiting hot spots. */
+    float diskPattern(float r, float ang, float y, float t, int oct) {
+      float lr = log(r / R_ISCO);
+      float sp1 = 0.5 + 0.5 * cos(2.0 * (ang + 0.22 * t) + 3.4 * lr);
+      float sp2 = 0.5 + 0.5 * cos(3.0 * (ang + 0.22 * t) - 5.0 * lr + 1.3);
+      float arms = 0.40 + 0.60 * sp1 * (0.55 + 0.45 * sp2);
+
+      const float TP = 18.0;
+      float t1 = mod(t, TP);
+      float t2 = mod(t + 0.5 * TP, TP);
+      float w1 = 1.0 - abs(2.0 * t1 / TP - 1.0);
+      float om = omegaK(r);
+      float a1 = ang + om * t1;
+      float a2 = ang + om * t2;
+      const float K = 2.6;
+      float n1 = diskFbm(vec3(r * 1.5 + y * 4.0, cos(a1) * K, sin(a1) * K), oct);
+      float n2 = diskFbm(vec3(r * 1.5 + y * 4.0, cos(a2) * K, sin(a2) * K), oct);
+      float turb = 0.20 + 1.55 * smoothstep(0.22, 0.78, mix(n2, n1, w1));
+
+      float hs = 0.0;
+      for (int i = 0; i < 3; i++) {
+        float fi = float(i);
+        float ri = 4.2 + 2.6 * fi;
+        float ai = 1.3 + 2.1 * fi - omegaK(ri) * t;
+        float da = ang - ai;
+        da = atan(sin(da), cos(da));
+        float d = da * r;
+        float dr = r - ri;
+        hs += exp(-(d * d / 0.81 + dr * dr / 0.08));
+      }
+      return arms * turb * (1.0 + 1.6 * hs);
+    }
+
+    /* Radiance emitted by the disk toward the camera.
+       toCam : photon propagation direction (towards the camera) in the static frame.
+       Hollywood: no Doppler / redshift, golden palette.
+       Physical : gas moves at v = sqrt(r_s / 2r) so Doppler beaming and
+                  gravitational redshift act on temperature and intensity (g^4). */
+    vec3 diskSource(vec3 P, float r, vec3 toCam, float R, float t, bool holl, int oct) {
+      float Tn = tempProfile(r);
+      float ang = atan(P.z, P.x);
+      float pat = diskPattern(r, ang, P.y, t, oct);
+      if (holl) {
+        float Tobs = 4500.0 * (0.50 + 0.50 * Tn);
+        vec3 col = blackbody(Tobs);
+        float bright = pow(Tn, 1.25) * pat * 0.80;
+        return col * bright;
+      }
+      float beta = sqrt(0.5 / r);
+      float gam = inversesqrt(1.0 - beta * beta);
+      vec3 vhat = normalize(vec3(P.z, 0.0, -P.x));
+      float D = 1.0 / (gam * (1.0 - beta * dot(vhat, toCam)));
+      float g = sqrt(1.0 - 1.0 / r) * D / sqrt(1.0 - 1.0 / R);
+      float Tobs = 6200.0 * Tn * g;
+      vec3 col = blackbody(Tobs);
+      float x = Tobs / 6000.0;
+      float bright = x * x * x * x * pat * 0.34;
+      return col * bright;
+    }
+    float diskCoverage(float r) {
+      return smoothstep(R_ISCO - 0.02, R_ISCO + 0.14, r) * (1.0 - smoothstep(R_OUT - 1.4, R_OUT + 0.3, r));
+    }
+
+    /* Pixel ray: camera basis + orbital plane (e1 = radial, e2 = in-plane tangent) */
+    vec3 pixelRayUV(vec2 uv) {
+      vec2 sp = (uv * 2.0 - 1.0) * vec2(u_resolution.x / u_resolution.y, 1.0);
+      return normalize(mat3(u_view_matrix) * normalize(vec3(sp * 0.8, 1.6)));
+    }
+    vec3 pixelRay() { return pixelRayUV(v_uv); }
+    `;
+
+    /* ---- Modes 1-3: lookup-table renderer ---- */
+    const FS_LUT = GLSL_COMMON + `
+    uniform sampler2D u_orbit_lut;
+    uniform sampler2D u_defl_lut;
+    uniform float u_theta_c;
+    uniform float u_theta_max;
+    uniform vec2  u_lut_dims;
+    uniform float u_phi_max;
+
+    float thetaToX(float th) {
+      if (th < u_theta_c) return 0.5 * th / u_theta_c;
+      float t = clamp((th - u_theta_c) / (u_theta_max - u_theta_c), 0.0, 1.0);
+      return 0.5 + 0.5 * pow(t, 1.0 / 3.0);
+    }
+    float lutU(float x, float phi) {
+      vec2 pos = vec2(x * (u_lut_dims.x - 1.0), clamp(phi / u_phi_max, 0.0, 1.0) * (u_lut_dims.y - 1.0));
+      ivec2 i0 = ivec2(floor(pos));
+      vec2 f = pos - vec2(i0);
+      ivec2 i1 = min(i0 + 1, ivec2(u_lut_dims) - 1);
+      float a = texelFetch(u_orbit_lut, ivec2(i0.x, i0.y), 0).r;
+      float b = texelFetch(u_orbit_lut, ivec2(i1.x, i0.y), 0).r;
+      float c = texelFetch(u_orbit_lut, ivec2(i0.x, i1.y), 0).r;
+      float d = texelFetch(u_orbit_lut, ivec2(i1.x, i1.y), 0).r;
+      return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+    }
+    float lutPhiEnd(float x) {
+      float px = x * (u_lut_dims.x - 1.0);
+      int i0 = int(floor(px));
+      int i1 = min(i0 + 1, int(u_lut_dims.x) - 1);
+      float f = px - float(i0);
+      float a = texelFetch(u_defl_lut, ivec2(i0, 0), 0).r;
+      float b = texelFetch(u_defl_lut, ivec2(i1, 0), 0).r;
+      bool va = a > 0.0 && a < 1000.0;
+      bool vb = b > 0.0 && b < 1000.0;
+      if (va && vb) return mix(a, b, f);
+      if (f < 0.5) return va ? a : -1.0;
+      return vb ? b : -1.0;
+    }
+
+    vec3 radianceLut(vec3 camPos, vec3 dir, float t, bool holl) {
+      float R = length(camPos);
+      vec3 e1 = normalize(camPos + vec3(0.0, 1e-4, 0.0));
+      float c = clamp(dot(dir, -e1), -1.0, 1.0);
+      float theta = acos(c);
+      vec3 perp = dir + c * e1;
+      float pl = length(perp);
+      vec3 e2 = (pl > 1e-6) ? perp / pl : normalize(cross(e1, vec3(1.0, 0.0, 0.0)));
+      float u0 = 1.0 / R;
+      float sT = max(sin(theta), 1e-4);
+      float b2 = R * R * sT * sT / (1.0 - u0);
+      float x = thetaToX(theta);
+
+      /* orbital angles at which the ray plane meets the disk plane y = 0 */
+      float phi0 = atan(e2.y, e1.y);
+      float phF = mod(phi0 + 0.5 * PI, PI);
+      if (phF < 1e-3) phF += PI;
+
+      vec3 col = vec3(0.0);
+      float T = 1.0;
+      for (int k = 0; k < 4; k++) {
+        float ph = phF + float(k) * PI;
+        if (ph >= u_phi_max) break;
+        float uu = lutU(x, ph);
+        if (uu >= 0.999 || uu <= 1e-4) break;
+        float r = 1.0 / uu;
+        if (r > R_ISCO - 0.2 && r < R_OUT + 0.8) {
+          float cov = diskCoverage(r);
+          if (cov > 0.0) {
+            float cph = cos(ph), sph = sin(ph);
+            vec3 rh = cph * e1 + sph * e2;
+            vec3 th = -sph * e1 + cph * e2;
+            float upm = sqrt(max(0.0, 1.0 / b2 - uu * uu * (1.0 - uu)));
+            float du = lutU(x, ph + 0.05) - lutU(x, max(ph - 0.05, 0.0));
+            float upv = (du >= 0.0) ? upm : -upm;
+            float cot = -upv / (uu * sqrt(1.0 - uu));
+            float sa = inversesqrt(1.0 + cot * cot);
+            float ca = cot * sa;
+            vec3 dirBack = ca * rh + sa * th;
+            vec3 S = diskSource(r * rh, r, -dirBack, R, t, holl, 3);
+            float a = cov * 0.98;
+            col += T * a * S;
+            T *= (1.0 - a);
+            if (T < 0.01) break;
+          }
+        }
+      }
+      if (T > 0.01) {
+        float pe;
+        if (theta >= u_theta_max) {
+          float b = sqrt(b2);
+          pe = PI - theta + 2.0 / b;
+        } else {
+          pe = lutPhiEnd(x);
+        }
+        if (pe > 0.0) {
+          vec3 dirEnd = cos(pe) * e1 + sin(pe) * e2;
+          col += T * background(dirEnd);
+        }
+      }
+      return col;
+    }
+
+    uniform float u_ss;
+    void main() {
+      int n = int(u_ss + 0.5);
+      vec3 acc = vec3(0.0);
+      for (int j = 0; j < 4; j++) {
+        if (j >= n) break;
+        for (int i = 0; i < 4; i++) {
+          if (i >= n) break;
+          vec2 o = (vec2(float(i), float(j)) + 0.5) / float(n) - 0.5;
+          acc += min(radianceLut(u_camera_pos, pixelRayUV(v_uv + o / u_resolution), u_time, u_hollywood > 0.5), vec3(30.0));
+        }
+      }
+      fragColor = vec4(acc / float(n * n), 1.0);
+    }`;
+
+    /* ---- Mode 4: per-pixel RK4 geodesic ray marcher through a volumetric disk ---- */
+    const FS_VOL = GLSL_COMMON + `
+    const int MAXS = 190;
+
+    void main() {
+      vec3 dir = pixelRay();
+      vec3 camPos = u_camera_pos;
+      bool holl = u_hollywood > 0.5;
+      float t = u_time;
+      float R = length(camPos);
+      vec3 e1 = normalize(camPos + vec3(0.0, 1e-4, 0.0));
+      float c = clamp(dot(dir, -e1), -1.0, 1.0);
+      float theta = acos(c);
+      vec3 perp = dir + c * e1;
+      float pl = length(perp);
+      vec3 e2 = (pl > 1e-6) ? perp / pl : normalize(cross(e1, vec3(1.0, 0.0, 0.0)));
+      float u0 = 1.0 / R;
+      float sT = max(sin(theta), 1e-4);
+
+      /* RK4 on the Binet orbit equation  u'' = -u + 1.5 u^2 */
+      float u = u0;
+      float up = u0 * sqrt(1.0 - u0) * cos(theta) / sT;
+      float phi = 0.0;
+      float yv = e1.y * R;
+      vec3 col = vec3(0.0);
+      float T = 1.0;
+      float ring = 0.0;
+      int status = 0;
+      vec3 dirEnd = dir;
+
+      for (int i = 0; i < MAXS; i++) {
+        float r = 1.0 / u;
+        float H = 0.022 * r + 0.03;
+        float spd = sqrt(u * u + up * up) / (u * u);
+        float dr = max(0.0, max(R_ISCO - 0.2 - r, r - (R_OUT + 0.5)));
+        float dy = max(0.0, abs(yv) - 2.8 * H);
+        float dDisk = length(vec2(dr, dy));
+        float dst = 0.35 * dDisk + 0.38 * H + 0.025;
+        float dphi = clamp(dst / spd, 0.008, 0.10);
+        if (u > 0.35) dphi = min(dphi, 0.045);
+
+        float k1u = up,            k1p = -u + 1.5 * u * u;
+        float u2 = u + 0.5 * dphi * k1u, p2 = up + 0.5 * dphi * k1p;
+        float k2u = p2,            k2p = -u2 + 1.5 * u2 * u2;
+        float u3 = u + 0.5 * dphi * k2u, p3 = up + 0.5 * dphi * k2p;
+        float k3u = p3,            k3p = -u3 + 1.5 * u3 * u3;
+        float u4 = u + dphi * k3u, p4 = up + dphi * k3p;
+        float k4u = p4,            k4p = -u4 + 1.5 * u4 * u4;
+        float un = u + dphi / 6.0 * (k1u + 2.0 * k2u + 2.0 * k3u + k4u);
+        float upn = up + dphi / 6.0 * (k1p + 2.0 * k2p + 2.0 * k3p + k4p);
+        float phin = phi + dphi;
+
+        if (un >= 1.0) { status = 1; break; }
+
+        float rn = 1.0 / un;
+        float cn = cos(phin), sn = sin(phin);
+        float yn = (cn * e1.y + sn * e2.y) * rn;
+        vec3 rh = cn * e1 + sn * e2;
+        vec3 th = -sn * e1 + cn * e2;
+        float cot = -upn / (un * sqrt(max(1e-6, 1.0 - un)));
+        float sa = inversesqrt(1.0 + cot * cot);
+        float ca = cot * sa;
+        vec3 dirB = ca * rh + sa * th;
+        dirEnd = dirB;
+
+        /* thin photon-ring glow: light piling up near the photon sphere */
+        float dn = (un - 0.6667) / 0.045;
+        ring += dphi * exp(-dn * dn);
+
+        if (rn > R_ISCO - 0.3 && rn < R_OUT + 1.0) {
+          float HN = 0.022 * rn + 0.03;
+          if (abs(yn) < 2.6 * HN) {
+            float cov = diskCoverage(rn);
+            if (cov > 0.0) {
+              vec3 P = rn * rh;
+              float vert = exp(-(yn * yn) / (HN * HN));
+              float ds = spd * dphi;
+              float ang = atan(P.z, P.x);
+              float pat = diskPattern(rn, ang, yn, t, 3);
+              float dtau = 2.2 * vert * cov * ds / HN * (0.35 + 0.5 * min(pat, 2.0));
+              float a = 1.0 - exp(-dtau);
+              vec3 S = diskSource(P, rn, -dirB, R, t, holl, 3);
+              col += T * a * S;
+              T *= (1.0 - a);
+              if (T < 0.02) { status = 3; break; }
+            }
+          }
+        }
+
+        u = un; up = upn; phi = phin; yv = yn;
+
+        if (upn < 0.0 && (un < 0.045 || (un < 0.08 && rn > 12.5))) {
+          status = 2;
+          break;
+        }
+      }
+
+      if (status == 0) {
+        if (up < 0.0 || u < 0.35) {
+          status = 2;
+        }
+      }
+
+      if (status == 2) col += T * background(dirEnd);
+      if (status != 3) col += T * ring * 0.045 * vec3(1.0, 0.86, 0.62);
+      fragColor = vec4(col, 1.0);
+    }`;
+
+    /* ---- Modes 1-2: glyph-atlas ASCII shader over the low-res cell grid ---- */
+    const FS_ASCII = `#version 300 es
+    precision highp float;
+    precision highp sampler2D;
+    in vec2 v_uv;
+    out vec4 fragColor;
+    uniform sampler2D u_cells;
+    uniform sampler2D u_atlas;
+    uniform vec2  u_grid;
+    uniform vec2  u_resolution;
+    uniform float u_time;
+    uniform float u_style;   // 1 = green phosphor CRT, 2 = thermal colour
+    const float EXPO = 3.2;
+
+    vec3 aces(vec3 x) {
+      return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0);
+    }
+    vec3 thermal(float L) {
+      vec3 c = vec3(0.0);
+      c = mix(vec3(0.03, 0.0, 0.06), vec3(0.75, 0.08, 0.04), smoothstep(0.0, 0.30, L));
+      c = mix(c, vec3(1.0, 0.55, 0.06), smoothstep(0.25, 0.55, L));
+      c = mix(c, vec3(1.0, 0.95, 0.55), smoothstep(0.50, 0.78, L));
+      c = mix(c, vec3(0.85, 0.93, 1.0), smoothstep(0.75, 1.0, L));
+      return c;
+    }
+
+    void main() {
+      vec2 uv = v_uv;
+      bool crt = u_style < 1.5;
+      if (crt) {
+        vec2 p = uv * 2.0 - 1.0;
+        p += p * dot(p, p) * 0.055;
+        uv = p * 0.5 + 0.5;
+        if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
+          fragColor = vec4(0.0, 0.0, 0.0, 1.0);
+          return;
+        }
+      }
+      vec2 g = uv * u_grid;
+      vec2 cell = floor(g);
+      vec2 f = fract(g);
+      vec2 cuv = (cell + 0.5) / u_grid;
+
+      vec3 hdr = texture(u_cells, cuv).rgb;
+      vec3 tm = aces(hdr * EXPO);
+      float lum = dot(tm, vec3(0.2126, 0.7152, 0.0722));
+      float L = pow(clamp(lum, 0.0, 1.0), 0.5);
+      int idx = int(clamp(floor(L * 13.0), 0.0, 12.0));
+      if (idx == 0 && max(hdr.r, max(hdr.g, hdr.b)) > 0.03) idx = 1;
+
+      float gm = texture(u_atlas, vec2((float(idx) + f.x) / 13.0, 1.0 - f.y)).r;
+      vec3 col;
+      if (crt) {
+        vec3 green = vec3(0.16, 1.0, 0.28);
+        /* phosphor bloom: average the neighbouring cells */
+        vec2 px = 1.0 / u_grid;
+        float gl = 0.0;
+        gl += dot(aces(texture(u_cells, cuv + vec2( px.x, 0.0)).rgb * EXPO), vec3(0.3333));
+        gl += dot(aces(texture(u_cells, cuv + vec2(-px.x, 0.0)).rgb * EXPO), vec3(0.3333));
+        gl += dot(aces(texture(u_cells, cuv + vec2(0.0,  px.y)).rgb * EXPO), vec3(0.3333));
+        gl += dot(aces(texture(u_cells, cuv + vec2(0.0, -px.y)).rgb * EXPO), vec3(0.3333));
+        gl *= 0.25;
+        col = green * (gm * (0.25 + 1.05 * L) + 0.03 * L + 0.14 * gl) + vec3(0.0, 0.012, 0.003);
+        float scan = 0.80 + 0.20 * sin(uv.y * u_resolution.y * 2.094);
+        float roll = 1.0 + 0.05 * sin(uv.y * 5.0 - u_time * 0.8);
+        float flick = 1.0 + 0.015 * sin(u_time * 53.0);
+        vec2 vp = uv * 2.0 - 1.0;
+        float vig = smoothstep(1.45, 0.5, length(vp));
+        col *= scan * roll * flick * vig;
+      } else {
+        vec3 tc = thermal(L);
+        col = tc * (gm * (0.30 + 0.95 * L) + 0.07 * L);
+      }
+      fragColor = vec4(col, 1.0);
+    }`;
+
+    /* ---- Bloom: bright pass + separable blur ---- */
+    const FS_BRIGHT = `#version 300 es
+    precision highp float;
+    precision highp sampler2D;
+    in vec2 v_uv;
+    out vec4 fragColor;
+    uniform sampler2D u_tex;
+    void main() {
+      vec3 s = texture(u_tex, v_uv).rgb;
+      float lum = dot(s, vec3(0.2126, 0.7152, 0.0722));
+      float k = smoothstep(1.2, 4.0, lum);
+      fragColor = vec4(min(s, vec3(40.0)) * k, 1.0);
+    }`;
+    const FS_BLUR = `#version 300 es
+    precision highp float;
+    precision highp sampler2D;
+    in vec2 v_uv;
+    out vec4 fragColor;
+    uniform sampler2D u_tex;
+    uniform vec2 u_dir;
+    void main() {
+      vec3 s = texture(u_tex, v_uv).rgb * 0.227027;
+      s += (texture(u_tex, v_uv + u_dir * 1.384615).rgb + texture(u_tex, v_uv - u_dir * 1.384615).rgb) * 0.316216;
+      s += (texture(u_tex, v_uv + u_dir * 3.230769).rgb + texture(u_tex, v_uv - u_dir * 3.230769).rgb) * 0.070270;
+      fragColor = vec4(s, 1.0);
+    }`;
+
+    /* ---- Compositor: bloom, flare, dirt, ACES, vignette, grain, crossfade ---- */
+    const FS_COMP = `#version 300 es
+    precision highp float;
+    precision highp sampler2D;
+    in vec2 v_uv;
+    out vec4 fragColor;
+    uniform sampler2D u_scene;
+    uniform sampler2D u_snap;
+    uniform sampler2D u_bloomT;
+    uniform sampler2D u_bloomW;
+    uniform sampler2D u_streak;
+    uniform float u_xfade;
+    uniform float u_mode;
+    uniform float u_time;
+    uniform vec2  u_resolution;
+
+    vec3 aces(vec3 x) {
+      return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0);
+    }
+    float hash21(vec2 p) {
+      vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+      p3 += dot(p3, p3.yzx + 33.33);
+      return fract((p3.x + p3.y) * p3.z);
+    }
+    float vn(vec2 p) {
+      vec2 i = floor(p), f = fract(p);
+      f = f * f * (3.0 - 2.0 * f);
+      return mix(mix(hash21(i), hash21(i + vec2(1, 0)), f.x), mix(hash21(i + vec2(0, 1)), hash21(i + vec2(1, 1)), f.x), f.y);
+    }
+
+    void main() {
+      vec3 col = texture(u_scene, v_uv).rgb;
+      if (u_mode > 2.5) {
+        bool cine = u_mode > 3.5;
+        if (cine) {
+          vec2 d = (v_uv - 0.5) * 0.0022;
+          col = vec3(texture(u_scene, v_uv + d).r, col.g, texture(u_scene, v_uv - d).b);
+        }
+        vec3 bt = texture(u_bloomT, v_uv).rgb;
+        vec3 bw = texture(u_bloomW, v_uv).rgb;
+        vec3 st = texture(u_streak, v_uv).rgb;
+        col += bt * (cine ? 0.22 : 0.15) + bw * (cine ? 0.26 : 0.18);
+        col += st * vec3(1.0, 0.86, 0.68) * (cine ? 0.22 : 0.08);
+        if (cine) {
+          /* anamorphic ghosts mirrored through the optical centre */
+          vec2 cp = v_uv - 0.5;
+          vec3 gh = texture(u_bloomW, 0.5 - cp * 0.55).rgb * vec3(0.30, 0.55, 1.0)
+                  + texture(u_bloomW, 0.5 + cp * 0.35).rgb * vec3(1.0, 0.55, 0.25) * 0.6;
+          col += gh * 0.07;
+          /* lens dirt lit by the surrounding glow */
+          float dirt = vn(v_uv * vec2(7.0, 4.0) + 3.0) * 0.6 + vn(v_uv * vec2(19.0, 11.0)) * 0.4;
+          dirt = smoothstep(0.45, 0.85, dirt);
+          col += (bw + bt * 0.5) * dirt * 0.30;
+        }
+        col = aces(col * (cine ? 1.05 : 1.0));
+        vec2 vp = v_uv * 2.0 - 1.0;
+        col *= smoothstep(1.55, cine ? 0.55 : 0.8, length(vp * vec2(0.9, 1.0)));
+        col = pow(col, vec3(1.0 / 2.2));
+        if (cine) {
+          float gr = hash21(v_uv * u_resolution + fract(u_time * 7.13) * 91.0) - 0.5;
+          col += gr * 0.035 * (1.0 - col);
+        }
+      }
+      if (u_xfade < 1.0) {
+        vec3 snap = texture(u_snap, v_uv).rgb;
+        col = mix(snap, col, smoothstep(0.0, 1.0, u_xfade));
+      }
+      fragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
+    }`;
+
+    /* =========================================================================
+     * 7. Programs, uniforms, FBOs
+     * ========================================================================= */
+    function compile(type, src) {
+      const s = gl.createShader(type);
+      gl.shaderSource(s, src);
+      gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+        const e = gl.getShaderInfoLog(s);
+        gl.deleteShader(s);
+        throw new Error('Shader compilation failed: ' + e);
+      }
+      return s;
+    }
+    function makeProgram(fsSrc) {
+      const p = gl.createProgram();
+      gl.attachShader(p, compile(gl.VERTEX_SHADER, VS));
+      gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fsSrc));
+      gl.linkProgram(p);
+      if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
+        throw new Error('Program linking failed: ' + gl.getProgramInfoLog(p));
+      }
+      return p;
+    }
+    function uniformsOf(p, names) {
+      const o = {};
+      for (let i = 0; i < names.length; i++) o[names[i]] = gl.getUniformLocation(p, names[i]);
+      return o;
+    }
+    const pLut = makeProgram(FS_LUT);
+    const pVol = makeProgram(FS_VOL);
+    const pAscii = makeProgram(FS_ASCII);
+    const pBright = makeProgram(FS_BRIGHT);
+    const pBlur = makeProgram(FS_BLUR);
+    const pComp = makeProgram(FS_COMP);
+
+    const sceneNames = ['u_resolution', 'u_view_matrix', 'u_camera_pos', 'u_time', 'u_hollywood'];
+    const uLut = uniformsOf(pLut, sceneNames.concat(['u_orbit_lut', 'u_defl_lut', 'u_theta_c', 'u_theta_max', 'u_lut_dims', 'u_phi_max', 'u_ss']));
+    const uVol = uniformsOf(pVol, sceneNames);
+    const uAscii = uniformsOf(pAscii, ['u_cells', 'u_atlas', 'u_grid', 'u_resolution', 'u_time', 'u_style']);
+    const uBright = uniformsOf(pBright, ['u_tex']);
+    const uBlur = uniformsOf(pBlur, ['u_tex', 'u_dir']);
+    const uComp = uniformsOf(pComp, ['u_scene', 'u_snap', 'u_bloomT', 'u_bloomW', 'u_streak', 'u_xfade', 'u_mode', 'u_time', 'u_resolution']);
+
+    const quadVAO = gl.createVertexArray();
+    gl.bindVertexArray(quadVAO);
+    const quadVBO = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadVBO);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+    function makeFbo(w, h, internal, type, filter) {
+      const fbo = gl.createFramebuffer();
+      const tex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, internal, w, h, 0, gl.RGBA, type, null);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      return { fbo: fbo, tex: tex, w: w, h: h, internal: internal, type: type };
+    }
+    function sizeFbo(f, w, h) {
+      if (f.w === w && f.h === h) return;
+      f.w = w; f.h = h;
+      gl.bindTexture(gl.TEXTURE_2D, f.tex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, f.internal, w, h, 0, gl.RGBA, f.type, null);
+    }
+    const GRID_COLS = 160;
+    let fScene = null, fSnap = null, fCells = null, fBA = null, fBB = null, fBC = null, fBD = null, fBE = null;
+    const cellDims = { cols: GRID_COLS, rows: 90 };
+
+    function updateFbos(W, H, scale) {
+      const rw = Math.max(2, Math.floor(W * scale));
+      const rh = Math.max(2, Math.floor(H * scale));
+      const hw = Math.max(2, rw >> 1), hh = Math.max(2, rh >> 1);
+      const qw = Math.max(2, rw >> 2), qh = Math.max(2, rh >> 2);
+      cellDims.cols = GRID_COLS;
+      cellDims.rows = Math.max(8, Math.round(GRID_COLS * H / W));
+      if (!fScene) {
+        fScene = makeFbo(rw, rh, HDR_INTERNAL, HDR_TYPE, gl.LINEAR);
+        fSnap = makeFbo(rw, rh, gl.RGBA8, gl.UNSIGNED_BYTE, gl.LINEAR);
+        fCells = makeFbo(cellDims.cols, cellDims.rows, HDR_INTERNAL, HDR_TYPE, gl.LINEAR);
+        fBA = makeFbo(hw, hh, HDR_INTERNAL, HDR_TYPE, gl.LINEAR);
+        fBB = makeFbo(hw, hh, HDR_INTERNAL, HDR_TYPE, gl.LINEAR);
+        fBC = makeFbo(qw, qh, HDR_INTERNAL, HDR_TYPE, gl.LINEAR);
+        fBD = makeFbo(qw, qh, HDR_INTERNAL, HDR_TYPE, gl.LINEAR);
+        fBE = makeFbo(qw, qh, HDR_INTERNAL, HDR_TYPE, gl.LINEAR);
+      } else {
+        sizeFbo(fScene, rw, rh);
+        sizeFbo(fSnap, rw, rh);
+        sizeFbo(fCells, cellDims.cols, cellDims.rows);
+        sizeFbo(fBA, hw, hh); sizeFbo(fBB, hw, hh);
+        sizeFbo(fBC, qw, qh); sizeFbo(fBD, qw, qh); sizeFbo(fBE, qw, qh);
+      }
+      gl.bindTexture(gl.TEXTURE_2D, null);
+    }
+
+    /* =========================================================================
+     * 8. Render passes
+     * ========================================================================= */
+    function drawQuad() { gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); }
+    function target(f) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, f ? f.fbo : null);
+      gl.viewport(0, 0, f ? f.w : canvas.width, f ? f.h : canvas.height);
+    }
+    function bindTex(unit, tex) {
+      gl.activeTexture(gl.TEXTURE0 + unit);
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+    }
+    function setSceneUniforms(u, w, h, time, holl) {
+      gl.uniform2f(u.u_resolution, w, h);
+      gl.uniformMatrix4fv(u.u_view_matrix, false, Camera.getViewMatrix());
+      gl.uniform3fv(u.u_camera_pos, Camera.getEye());
+      gl.uniform1f(u.u_time, time);
+      gl.uniform1f(u.u_hollywood, holl);
+    }
+    function drawLutScene(dst, time, ss) {
+      target(dst);
+      gl.useProgram(pLut);
+      setSceneUniforms(uLut, dst.w, dst.h, time, 0.0);
+      gl.uniform1i(uLut.u_orbit_lut, 1);
+      gl.uniform1i(uLut.u_defl_lut, 2);
+      gl.uniform1f(uLut.u_theta_c, LUT.thetaC);
+      gl.uniform1f(uLut.u_theta_max, LUT.thetaMax);
+      gl.uniform2f(uLut.u_lut_dims, LUT.NT, LUT.NP);
+      gl.uniform1f(uLut.u_phi_max, LUT.PHI_MAX);
+      gl.uniform1f(uLut.u_ss, ss);
+      bindTex(1, LUT.texOrbit);
+      bindTex(2, LUT.texDefl);
+      drawQuad();
+    }
+    function drawScene(mode, time) {
+      if (mode <= 2) {
+        drawLutScene(fCells, time, 3.0);
+        target(fScene);
+        gl.useProgram(pAscii);
+        gl.uniform1i(uAscii.u_cells, 0);
+        gl.uniform1i(uAscii.u_atlas, 1);
+        gl.uniform2f(uAscii.u_grid, cellDims.cols, cellDims.rows);
+        gl.uniform2f(uAscii.u_resolution, fScene.w, fScene.h);
+        gl.uniform1f(uAscii.u_time, time);
+        gl.uniform1f(uAscii.u_style, mode);
+        bindTex(0, fCells.tex);
+        bindTex(1, atlasTex);
+        drawQuad();
+      } else if (mode === 3) {
+        drawLutScene(fScene, time, 1.0);
+      } else {
+        target(fScene);
+        gl.useProgram(pVol);
+        setSceneUniforms(uVol, fScene.w, fScene.h, time, APP_STATE.isHollywood ? 1.0 : 0.0);
+        drawQuad();
+      }
+    }
+    function blurPass(src, dst, dx, dy) {
+      target(dst);
+      gl.useProgram(pBlur);
+      gl.uniform1i(uBlur.u_tex, 0);
+      gl.uniform2f(uBlur.u_dir, dx / src.w, dy / src.h);
+      bindTex(0, src.tex);
+      drawQuad();
+    }
+    function drawBloom() {
+      target(fBA);
+      gl.useProgram(pBright);
+      gl.uniform1i(uBright.u_tex, 0);
+      bindTex(0, fScene.tex);
+      drawQuad();
+      /* tight glow (half-res) */
+      blurPass(fBA, fBB, 1.0, 0.0);
+      blurPass(fBB, fBA, 0.0, 1.0);
+      /* wide glow (quarter-res) */
+      blurPass(fBA, fBC, 2.0, 0.0);
+      blurPass(fBC, fBD, 0.0, 2.0);
+      blurPass(fBD, fBC, 3.0, 0.0);
+      blurPass(fBC, fBD, 0.0, 3.0);
+      /* anamorphic horizontal streak */
+      blurPass(fBA, fBC, 5.0, 0.0);
+      blurPass(fBC, fBE, 11.0, 0.0);
+      blurPass(fBE, fBC, 11.0, 0.0);
+      blurPass(fBC, fBE, 11.0, 0.0);
+    }
+    function composite(dst, mode, xfade, time, w, h) {
+      target(dst);
+      gl.useProgram(pComp);
+      gl.uniform1i(uComp.u_scene, 0);
+      gl.uniform1i(uComp.u_snap, 1);
+      gl.uniform1i(uComp.u_bloomT, 2);
+      gl.uniform1i(uComp.u_bloomW, 3);
+      gl.uniform1i(uComp.u_streak, 4);
+      gl.uniform1f(uComp.u_xfade, xfade);
+      gl.uniform1f(uComp.u_mode, mode);
+      gl.uniform1f(uComp.u_time, time);
+      gl.uniform2f(uComp.u_resolution, w, h);
+      bindTex(0, fScene.tex);
+      bindTex(1, dst === fSnap ? null : fSnap.tex);
+      bindTex(2, fBA.tex);
+      bindTex(3, fBD.tex);
+      bindTex(4, fBE.tex);
+      drawQuad();
+      for (let i = 0; i < 5; i++) {
+        gl.activeTexture(gl.TEXTURE0 + i);
+        gl.bindTexture(gl.TEXTURE_2D, null);
+      }
+    }
+    function captureSnapshot() {
+      if (!fSnap || !fScene) return;
+      const time = performance.now() * 0.001;
+      ensureLut(Camera.radius);
+      drawScene(APP_STATE.mode, time);
+      if (APP_STATE.mode >= 3) drawBloom();
+      composite(fSnap, APP_STATE.mode, 1.0, time, fSnap.w, fSnap.h);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    }
+
+    /* =========================================================================
+     * 9. UI / HUD / state machine
+     * ========================================================================= */
+    const introScreenEl = document.getElementById('intro-screen');
+    const titleCardEl = document.getElementById('title-card');
+    const titleTextEl = document.getElementById('title-text');
+    const titleSubEl = document.getElementById('title-sub');
+    const hudEl = document.getElementById('hud');
+    const hudModeEl = document.getElementById('hud-mode');
+    const hudFpsEl = document.getElementById('hud-fps');
+    const hudResEl = document.getElementById('hud-res');
+    const hudDopplerEl = document.getElementById('hud-doppler');
+    const hudOrbitEl = document.getElementById('hud-orbit');
+    const toastEl = document.getElementById('toast');
+
+    let titleTimeout = null;
+    function showTitleCard(mode) {
+      const meta = MODE_METADATA[mode] || MODE_METADATA[1];
+      titleTextEl.textContent = meta.title;
+      titleSubEl.textContent = meta.sub;
+      if (titleTimeout) { clearTimeout(titleTimeout); titleTimeout = null; }
+      titleCardEl.classList.remove('fade-out');
+      titleCardEl.classList.add('show');
+      titleTimeout = setTimeout(() => {
+        titleCardEl.classList.remove('show');
+        titleCardEl.classList.add('fade-out');
+        titleTimeout = setTimeout(() => {
+          titleCardEl.classList.remove('fade-out');
+          titleTimeout = null;
+        }, 500);
+      }, 1500);
+    }
+    let toastTimeout = null;
+    function showToast(text) {
+      toastEl.textContent = text;
+      toastEl.classList.add('show');
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => toastEl.classList.remove('show'), 2200);
+    }
+    function dopplerLabel() {
+      return APP_STATE.isHollywood ? 'HOLLYWOOD (symmetric golden disk)' : 'PHYSICALLY ACCURATE (Doppler beaming + redshift)';
+    }
+    function updateHudDoppler() {
+      if (APP_STATE.mode === 4) {
+        hudDopplerEl.classList.remove('hidden');
+        hudDopplerEl.textContent = '[H] DOPPLER: ' + (APP_STATE.isHollywood ? 'HOLLYWOOD' : 'PHYSICAL');
+      } else {
+        hudDopplerEl.classList.add('hidden');
+      }
+    }
+    function updateHudMode() {
+      hudModeEl.textContent = (MODE_METADATA[APP_STATE.mode] || MODE_METADATA[1]).title;
+      updateHudDoppler();
+    }
+    function updateHudOrbit() {
+      hudOrbitEl.textContent = APP_STATE.presenterActive ? '[O] AUTO-ORBIT: ON' : '[O] AUTO-ORBIT: OFF';
+    }
+    function updateHudRes() {
+      const w = fScene ? fScene.w : canvas.width, h = fScene ? fScene.h : canvas.height;
+      hudResEl.textContent = 'SCALE: ' + APP_STATE.renderScale.toFixed(2) + 'x (' + w + 'x' + h + ')' + (APP_STATE.autoScale ? ' AUTO' : ' MANUAL');
+    }
+    function updateHudMetrics() {
+      hudFpsEl.textContent = 'FPS: ' + APP_STATE.fps.toFixed(1) + ' (' + emaFrameTime.toFixed(1) + 'ms)';
+      updateHudDoppler();
+    }
+    function updateHud() { updateHudMode(); updateHudOrbit(); updateHudRes(); }
+
+    function setMode(m) {
+      if (m < 1 || m > 4) return;
+      if (m === APP_STATE.mode && APP_STATE.crossfadeAlpha >= 1.0) return;
+      captureSnapshot();
+      APP_STATE.mode = m;
+      APP_STATE.targetMode = m;
+      APP_STATE.crossfadeAlpha = 0.0;
+      updateHud();
+      showTitleCard(m);
+    }
+    function dismissIntro() {
+      if (APP_STATE.introDismissed) return;
+      APP_STATE.introDismissed = true;
+      introScreenEl.classList.add('fade-out');
+      setTimeout(() => { introScreenEl.style.display = 'none'; }, 800);
+      APP_STATE.mode = 1;
+      APP_STATE.targetMode = 1;
+      APP_STATE.crossfadeAlpha = 1.0;
+      updateHud();
+      showTitleCard(1);
+    }
+
+    /* =========================================================================
+     * 10. Resize + input
+     * ========================================================================= */
+    function applyScale() { updateFbos(canvas.width, canvas.height, APP_STATE.renderScale); updateHudRes(); }
+    function onResize() {
+      const dpr = Math.min(window.devicePixelRatio || 1.0, 1.5);
+      const w = Math.floor(window.innerWidth * dpr), h = Math.floor(window.innerHeight * dpr);
+      if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+      applyScale();
+    }
+    window.addEventListener('resize', onResize);
+    onResize();
+    hudEl.classList.toggle('hidden', !APP_STATE.hudVisible);
+
+    let isPointerDown = false, lastPX = 0, lastPY = 0;
+    canvas.addEventListener('pointerdown', (e) => {
+      isPointerDown = true; Camera.isDragging = true;
+      lastPX = e.clientX; lastPY = e.clientY;
+      try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+    });
+    canvas.addEventListener('pointermove', (e) => {
+      if (!isPointerDown) return;
+      Camera.thetaTarget += (e.clientX - lastPX) * 0.005;
+      Camera.phiTarget += (e.clientY - lastPY) * 0.005;
+      lastPX = e.clientX; lastPY = e.clientY;
+      Camera.phiTarget = Math.max(Camera.minPhi, Math.min(Camera.maxPhi, Camera.phiTarget));
+    });
+    function endPointer(e) {
+      if (!isPointerDown) return;
+      isPointerDown = false; Camera.isDragging = false;
+      try { canvas.releasePointerCapture(e.pointerId); } catch (err) {}
+    }
+    canvas.addEventListener('pointerup', endPointer);
+    canvas.addEventListener('pointercancel', endPointer);
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const z = 1.0 + Math.sign(e.deltaY) * Math.min(Math.abs(e.deltaY) * 0.0015, 0.2);
+      Camera.radiusTarget = Math.max(Camera.minRadius, Math.min(Camera.maxRadius, Camera.radiusTarget * z));
+    }, { passive: false });
+
+    let autoHoldUntil = 0;
+    function manualScale(delta) {
+      APP_STATE.renderScale = Math.max(0.4, Math.min(1.0, +(APP_STATE.renderScale + delta).toFixed(1)));
+      autoHoldUntil = performance.now() + 6000;
+      applyScale();
+    }
+    window.addEventListener('keydown', (e) => {
+      const code = e.code, key = e.key;
+      if (code === 'Space' || key === ' ') {
+        e.preventDefault();
+        if (!APP_STATE.introDismissed) dismissIntro();
+        else setMode((APP_STATE.mode % 4) + 1);
+        return;
+      }
+      for (let n = 1; n <= 4; n++) {
+        if (code === 'Digit' + n || key === String(n)) {
+          if (!APP_STATE.introDismissed) dismissIntro();
+          setMode(n);
+          return;
+        }
+      }
+      if (code === 'KeyH' || key === 'h' || key === 'H') {
+        APP_STATE.isHollywood = !APP_STATE.isHollywood;
+        updateHudDoppler();
+        if (APP_STATE.mode === 4) showToast('MODE: ' + dopplerLabel());
+        return;
+      }
+      if (code === 'KeyO' || key === 'o' || key === 'O') {
+        APP_STATE.presenterActive = !APP_STATE.presenterActive;
+        updateHudOrbit();
+        return;
+      }
+      if (code === 'KeyR' || key === 'r' || key === 'R') { Camera.resetView(); return; }
+      if (code === 'KeyF' || key === 'f' || key === 'F') {
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+        else document.exitFullscreen().catch(() => {});
+        return;
+      }
+      if (code === 'Tab' || key === 'Tab') {
+        e.preventDefault();
+        APP_STATE.hudVisible = !APP_STATE.hudVisible;
+        hudEl.classList.toggle('hidden', !APP_STATE.hudVisible);
+        return;
+      }
+      if (code === 'BracketLeft' || key === '[') { manualScale(-0.1); return; }
+      if (code === 'BracketRight' || key === ']') { manualScale(0.1); return; }
+    });
+
+    /* =========================================================================
+     * 11. Main loop + automatic dynamic resolution
+     * ========================================================================= */
+    let lastTime = performance.now();
+    let emaFrameTime = 16.667;
+    let hudTimer = 0.0;
+    let drsTimer = 0.0, drsGoodTime = 0.0, drsBackoff = 4.0, lastUpAt = -1e9;
+
+    function autoResolution(dt, nowMs) {
+      drsTimer += dt;
+      if (drsTimer < 0.5) return;
+      drsTimer = 0.0;
+      if (!APP_STATE.autoScale || nowMs < autoHoldUntil || !APP_STATE.introDismissed) return;
+      const targetMs = APP_STATE.mode === 4 ? 1000.0 / 31.0 : 1000.0 / 58.0;
+      if (emaFrameTime > targetMs * 1.12) {
+        if (APP_STATE.renderScale > 0.4) {
+          APP_STATE.renderScale = Math.max(0.4, +(APP_STATE.renderScale - 0.05).toFixed(2));
+          if (nowMs - lastUpAt < 3000) drsBackoff = Math.min(40.0, drsBackoff * 2.0);
+          applyScale();
+        }
+        drsGoodTime = 0.0;
+      } else if (emaFrameTime < targetMs * 1.03) {
+        drsGoodTime += 0.5;
+        if (drsGoodTime >= drsBackoff && APP_STATE.renderScale < 1.0) {
+          APP_STATE.renderScale = Math.min(1.0, +(APP_STATE.renderScale + 0.05).toFixed(2));
+          lastUpAt = nowMs;
+          drsGoodTime = 0.0;
+          applyScale();
+        }
+      }
+    }
+
+    function renderLoop(now) {
+      requestAnimationFrame(renderLoop);
+      const dt = Math.min((now - lastTime) * 0.001, 0.1);
+      lastTime = now;
+      emaFrameTime = 0.94 * emaFrameTime + 0.06 * (dt * 1000.0);
+      APP_STATE.fps = 1000.0 / Math.max(emaFrameTime, 1.0);
+      autoResolution(dt, now);
+
+      hudTimer += dt;
+      if (hudTimer >= 0.25) { hudTimer = 0.0; updateHudMetrics(); }
+
+      if (APP_STATE.crossfadeAlpha < 1.0) APP_STATE.crossfadeAlpha = Math.min(1.0, APP_STATE.crossfadeAlpha + dt);
+
+      const timeSec = now * 0.001;
+      Camera.update(dt, timeSec, APP_STATE.presenterActive);
+      ensureLut(Camera.radius);
+
+      drawScene(APP_STATE.mode, timeSec);
+      if (APP_STATE.mode >= 3) drawBloom();
+      composite(null, APP_STATE.mode, APP_STATE.crossfadeAlpha, timeSec, canvas.width, canvas.height);
+    }
+    requestAnimationFrame(renderLoop);
+  </script>
+</body>
+</html>
